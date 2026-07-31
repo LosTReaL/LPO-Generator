@@ -1,0 +1,377 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { LPOData, INITIAL_LPO_DATA, INITIAL_PDF_OPTIONS } from '../types';
+import LPOForm from './LPOForm';
+import { generateLPOPDF } from '../services/pdfService';
+import { FileDown, RotateCcw, Upload, Download, ArrowLeft } from 'lucide-react';
+import { format, startOfDay, eachDayOfInterval, subDays } from 'date-fns';
+
+const STORAGE_KEY = 'lpo_generator_data_v1';
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+const getInitialData = (): LPOData => JSON.parse(JSON.stringify(INITIAL_LPO_DATA));
+
+const hydrateData = (data: any): LPOData => {
+  const parseDate = (d: string | Date) => {
+     if (!d) return new Date();
+     if (d instanceof Date) return d;
+     
+     if (typeof d === 'string') {
+         if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+             const [year, month, day] = d.split('-').map(Number);
+             return new Date(year, month - 1, day);
+         }
+         const date = new Date(d);
+         return isNaN(date.getTime()) ? new Date() : date;
+     }
+     return new Date();
+  };
+
+  let safeChildAges = data.childAges || [];
+  if (data.childCount && safeChildAges.length !== data.childCount) {
+     const diff = data.childCount - safeChildAges.length;
+     if (diff > 0) {
+        safeChildAges = [...safeChildAges, ...Array(diff).fill(0)];
+     } else {
+        safeChildAges = safeChildAges.slice(0, data.childCount);
+     }
+  }
+
+  const legacyPdfOptions = {
+    showCompanyBillTo: data.showCompanyBillTo ?? false,
+    showGuestInBillTo: data.showGuestInBillTo ?? false,
+    showSignatureArea: data.showSignatureArea ?? false,
+    authorizedSignatoryName: data.authorizedSignatoryName ?? '',
+    showAverageRate: data.showAverageRate ?? false,
+    showDailyRateBreakdown: data.showDailyRateBreakdown ?? false,
+    showLogo: data.showLogo ?? false,
+    logoDataUrl: data.logoDataUrl ?? '',
+    showCreatedBy: data.showCreatedBy ?? false,
+    createdByName: data.createdByName ?? '',
+    showSupplierConfirmation: data.showSupplierConfirmation ?? false,
+    supplierConfirmationNumber: data.supplierConfirmationNumber ?? '',
+    showRateCodes: data.showRateCodes ?? true,
+    showApplicableRates: data.showApplicableRates ?? true,
+    showPaymentRemarks: data.showPaymentRemarks ?? true,
+    showCancellationPolicy: data.showCancellationPolicy ?? true,
+    showGeneralRemarks: data.showGeneralRemarks ?? true,
+    manualPOHeader: data.manualPOHeader ?? false,
+    poHeaderTitle: data.poHeaderTitle ?? 'PURCHASE ORDER',
+    manualPONumber: data.manualPONumber ?? false,
+    poNumber: data.poNumber ?? '',
+    showHotelInOccupancy: data.showHotelInOccupancy ?? false
+  };
+
+  const finalPdfOptions = {
+    ...INITIAL_PDF_OPTIONS,
+    ...(data.pdfOptions || legacyPdfOptions)
+  };
+
+  return {
+    ...INITIAL_LPO_DATA,
+    ...data,
+    stayRanges: (data.stayRanges || []).map((r: any) => ({
+      ...r,
+      start: parseDate(r.start),
+      end: parseDate(r.end)
+    })),
+    applicableRates: (data.applicableRates || []).map((r: any) => ({
+      ...r,
+      start: parseDate(r.start),
+      end: parseDate(r.end)
+    })),
+    guests: (data.guests || []).map((g: any) => {
+      if (typeof g === 'string') return { name: g, loyaltyNumber: '' };
+      return { name: g?.name || '', loyaltyNumber: g?.loyaltyNumber || '' };
+    }),
+    childAges: safeChildAges,
+    pdfOptions: finalPdfOptions
+  };
+};
+
+interface HotelLPOModuleProps {
+  onNavigateHome: () => void;
+}
+
+const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
+  const [lpoData, setLpoData] = useState<LPOData>(getInitialData());
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const { timestamp, data } = parsed;
+        
+        if (Date.now() - timestamp < SEVEN_DAYS_MS) {
+          const rehydratedData = hydrateData(data);
+          setLpoData(rehydratedData);
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load saved data', error);
+      localStorage.removeItem(STORAGE_KEY);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      const serializeData = (data: LPOData) => ({
+        ...data,
+        stayRanges: data.stayRanges.map(r => ({
+          ...r,
+          start: format(r.start, 'yyyy-MM-dd'),
+          end: format(r.end, 'yyyy-MM-dd')
+        })),
+        applicableRates: data.applicableRates.map(r => ({
+          ...r,
+          start: format(r.start, 'yyyy-MM-dd'),
+          end: format(r.end, 'yyyy-MM-dd')
+        }))
+      });
+
+      const storagePayload = {
+        timestamp: Date.now(),
+        data: serializeData(lpoData)
+      };
+      
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(storagePayload));
+      } catch (e) {
+        console.error('Failed to save data', e);
+      }
+    }
+  }, [lpoData, isLoaded]);
+
+  const handleReset = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to clear all fields? This cannot be undone.')) {
+      const freshData = getInitialData();
+      setLpoData(freshData);
+      setFormKey(prev => prev + 1);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+
+  const validateData = (): { errors: string[], warnings: string[] } => {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (!lpoData.hotelName.trim()) errors.push('Hotel Name is required.');
+    if (lpoData.guests.length === 0 || lpoData.guests.every(g => !g.name.trim())) {
+      errors.push('At least one Guest Name is required.');
+    }
+    if (lpoData.stayRanges.length === 0) {
+      errors.push('At least one Stay Date Range is required.');
+    }
+
+    const sortedRates = [...lpoData.applicableRates].sort((a, b) => a.start.getTime() - b.start.getTime());
+    for (let i = 0; i < sortedRates.length - 1; i++) {
+      if (sortedRates[i + 1].start <= sortedRates[i].end) {
+        errors.push(
+          `Rate overlap detected: Rate ending ${format(sortedRates[i].end, 'MMM d')} overlaps with rate starting ${format(sortedRates[i + 1].start, 'MMM d')}.`
+        );
+      }
+    }
+
+    const { stayRanges, applicableRates } = lpoData;
+    const missingRateDates: string[] = [];
+
+    for (const stay of stayRanges) {
+      if (stay.start >= stay.end) continue;
+      
+      try {
+        const nights = eachDayOfInterval({ start: stay.start, end: subDays(stay.end, 1) });
+        
+        for (const nightDate of nights) {
+          const hasRate = applicableRates.some(rate => {
+            const rStart = startOfDay(rate.start);
+            const rEnd = startOfDay(rate.end);
+            const nDate = startOfDay(nightDate);
+            return nDate >= rStart && nDate <= rEnd;
+          });
+
+          if (!hasRate) {
+            missingRateDates.push(format(nightDate, 'dd MMM yyyy'));
+          }
+        }
+      } catch (e) {
+        console.error('Error validating dates', e);
+      }
+    }
+
+    if (missingRateDates.length > 0) {
+      const uniqueDates = Array.from(new Set(missingRateDates)).sort((a,b) => new Date(a).getTime() - new Date(b).getTime());
+      const displayDates = uniqueDates.slice(0, 5);
+      const remaining = uniqueDates.length - 5;
+      warnings.push(
+        `Missing rates for: ${displayDates.join(", ")}${remaining > 0 ? ` ...and ${remaining} more` : ''}.`
+      );
+    }
+
+    return { errors, warnings };
+  };
+
+  const handleDownloadPDF = () => {
+    const { errors, warnings } = validateData();
+    
+    if (errors.length > 0) {
+      alert(`Unable to generate PDF:\n\n• ${errors.join("\n• ")}`);
+      return;
+    }
+
+    if (warnings.length > 0) {
+      const proceed = window.confirm(
+        `Please review the following warnings:\n\n• ${warnings.join("\n• ")}\n\nDo you want to generate the PDF anyway?`
+      );
+      if (!proceed) return;
+    }
+
+    generateLPOPDF(lpoData);
+  };
+
+  const handleExportData = () => {
+    const dataStr = JSON.stringify(lpoData, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `lpo_backup_${format(new Date(), 'yyyyMMdd_HHmm')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (parsed && typeof parsed === 'object') {
+          const restored = hydrateData(parsed);
+          setLpoData(restored);
+          setFormKey(prev => prev + 1);
+          alert('Data imported successfully.');
+        } else {
+          alert('Invalid data file format.');
+        }
+      } catch (err) {
+        alert('Failed to read file.');
+        console.error(err);
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  if (!isLoaded) return null;
+
+  return (
+    <div className="app-shell">
+      {/* Header */}
+      <header className="app-header">
+        <div className="module-header-bar" style={{ padding: '0.5rem 1.5rem', background: 'var(--slate-800)' }}>
+          <button onClick={onNavigateHome} className="module-back-btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--slate-300)' }}>
+            <ArrowLeft size={16} /> Back to Home
+          </button>
+        </div>
+        <div className="app-header-inner">
+          <div className="header-credit">
+             <span>Made with ❤️ using Gemini AI. Let’s</span>
+             <a 
+               href="https://www.linkedin.com/in/mismailyilmaz" 
+               target="_blank" 
+               rel="noopener noreferrer"
+             >
+               connect
+             </a>
+             <span>!</span>
+          </div>
+          <div className="header-actions">
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleImportFile} 
+              accept=".json" 
+              className="hidden" 
+            />
+            
+            <button 
+              type="button"
+              onClick={handleImportClick}
+              className="btn btn-ghost"
+              title="Import Data"
+            >
+              <Upload size={16} />
+              <span className="btn-label">Import</span>
+            </button>
+            <button 
+              type="button"
+              onClick={handleExportData}
+              className="btn btn-ghost"
+              title="Export Data"
+            >
+              <Download size={16} />
+              <span className="btn-label">Export</span>
+            </button>
+            <div className="header-divider"></div>
+            <button 
+              type="button"
+              onClick={handleReset}
+              className="btn-danger-ghost"
+              title="Reset Form"
+            >
+              <RotateCcw size={18} />
+            </button>
+            <button 
+              type="button"
+              onClick={handleDownloadPDF}
+              className="btn btn-primary"
+              style={{ marginLeft: '0.5rem' }}
+            >
+              <FileDown size={18} />
+              Generate PDF
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="main-content">
+        <div className="content-card">
+          <div className="content-card-body">
+            <LPOForm key={formKey} data={lpoData} onChange={setLpoData} />
+          </div>
+        </div>
+      </main>
+      
+      {/* Mobile Floating Action Button */}
+      <button 
+        type="button"
+        onClick={handleDownloadPDF}
+        className="fab"
+        title="Generate PDF"
+      >
+        <FileDown size={28} />
+      </button>
+    </div>
+  );
+};
+
+export default HotelLPOModule;

@@ -1,0 +1,5 @@
+{
+  "name": "Ordris",
+  "description": "A professional business document generator supporting Hotel LPO, General LPO, Hotel Invoices, and General Invoices with PDF export, multi-currency support, and localStorage persistence.",
+  "requestFramePermissions": []
+}
