@@ -86,7 +86,4 @@ export const INITIAL_GENERAL_INVOICE: GeneralInvoiceData = {
   discountValue: 0
 };
 
-export const GEN_INVOICE_CURRENCIES = [
-  { value: 'USD', label: 'USD' },
-  { value: 'EUR', label: 'EUR' },
-];
+export const GEN_INVOICE_CURRENCIES = ['USD', 'EUR', 'AED', 'GBP', 'SAR', 'INR', 'CAD', 'AUD', 'SGD', 'CHF', 'JPY', 'CNY'];

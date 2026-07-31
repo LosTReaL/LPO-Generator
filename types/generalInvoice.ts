@@ -81,7 +81,4 @@ export const INITIAL_HOTEL_INVOICE: HotelInvoiceData = {
 
 export const CHARGE_CATEGORIES = ['Room', 'Food & Beverage', 'Spa', 'Laundry', 'Mini Bar', 'Other'];
 export const PAYMENT_METHODS = ['Cash', 'Credit Card', 'Bank Transfer', 'Other'];
-export const HOTEL_INVOICE_CURRENCIES = [
-  { value: 'USD', label: 'USD' },
-  { value: 'EUR', label: 'EUR' },
-];
+export const HOTEL_INVOICE_CURRENCIES = ['USD', 'EUR', 'AED', 'GBP', 'SAR', 'INR', 'CAD', 'AUD', 'SGD', 'CHF', 'JPY', 'CNY'];

@@ -22,7 +22,7 @@ export const generateLPOPDF = (data: LPOData) => {
   const opts = data.pdfOptions; // Short alias for configuration
   
   // -- Pastel Professional Color Palette --
-  const { darkColor, mutedColor, accentColor, tableHeaderFill, tableHeaderTx, tableStripe, tableBorder } = PDF_COLORS;
+  const { dark: darkColor, muted: mutedColor, accent: accentColor, headerFill: tableHeaderFill, headerText: tableHeaderTx, stripe: tableStripe, border: tableBorder } = PDF_COLORS;
   const { setPrimary, setSecondary, setAccent } = getPdfTextHelpers(doc);
 
   // Ensure rates are sorted for deterministic behavior

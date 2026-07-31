@@ -261,11 +261,11 @@ export const generateGeneralLPOPDF = (data: GeneralLPOData): void => {
       notesY = 20;
     }
     notesY += 10;
-    drawSignatureArea(doc, 14, notesY, 'Authorized Signature', data.signatureName);
+    drawSignatureArea(doc, notesY, { showSignature: true, signatureName: data.signatureName });
   }
 
   // 8. Footer
-  drawPdfFooter(doc, poNumber);
+  drawPdfFooter(doc, poNumber, 'This is a computer-generated Purchase Order.');
 
   // Save the PDF
   const safeSupplierName = supplierName.replace(/[^a-z0-9]/gi, '_').toLowerCase();

@@ -60,24 +60,6 @@ export const INITIAL_GENERAL_LPO: GeneralLPOData = {
   includeSignature: true
 };
 
-export const UNIT_OPTIONS = [
-  { value: 'pcs', label: 'Pieces (pcs)' },
-  { value: 'kg', label: 'Kilograms (kg)' },
-  { value: 'g', label: 'Grams (g)' },
-  { value: 'l', label: 'Liters (l)' },
-  { value: 'ml', label: 'Milliliters (ml)' },
-  { value: 'm', label: 'Meters (m)' },
-  { value: 'cm', label: 'Centimeters (cm)' },
-  { value: 'box', label: 'Boxes (box)' },
-  { value: 'pack', label: 'Packs (pack)' },
-  { value: 'hr', label: 'Hours (hr)' },
-  { value: 'day', label: 'Days (day)' },
-  { value: 'month', label: 'Months (month)' }
-];
+export const UNIT_OPTIONS = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'box', 'pack', 'hr', 'day', 'month', 'unit', 'set'];
 
-export const CURRENCY_LIST = [
-  { value: 'USD', label: 'USD - US Dollar' },
-  { value: 'EUR', label: 'EUR - Euro' },
-  { value: 'GBP', label: 'GBP - British Pound' },
-  { value: 'AED', label: 'AED - UAE Dirham' },
-];
+export const CURRENCY_LIST = ['USD', 'EUR', 'GBP', 'AED', 'SAR', 'INR', 'CAD', 'AUD', 'SGD', 'CHF', 'JPY', 'CNY'];
