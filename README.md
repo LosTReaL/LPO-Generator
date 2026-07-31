@@ -1,7 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
 # Ordris — Professional Business Document Generator
 
 **Ordris** is a high-performance, client-side web application for generating, managing, and exporting professional business documents. Designed for high reliability and clean aesthetic excellence, it supports four distinct operational modules with zero server dependencies.
