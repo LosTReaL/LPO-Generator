@@ -409,6 +409,15 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
               </div>
             </Checkbox>
           </div>
+
+          <div style={{ marginTop: '16px' }}>
+            <Checkbox label="Apply Watermark" checked={!!data.watermarkText} onChange={c => onChange({ watermarkText: c ? 'DRAFT' : '' })}>
+              <div style={{ marginTop: '8px', width: '50%' }}>
+                <Label>Watermark Text</Label>
+                <Input value={data.watermarkText || ''} onChange={v => onChange({ watermarkText: String(v) })} placeholder="e.g. DRAFT" />
+              </div>
+            </Checkbox>
+          </div>
         </Section>
       </div>
 

@@ -4,6 +4,8 @@ import LPOForm from './LPOForm';
 import { generateLPOPDF } from '../services/pdfService';
 import { FileDown, RotateCcw, Upload, Download, ArrowLeft } from 'lucide-react';
 import { format, startOfDay, eachDayOfInterval, subDays } from 'date-fns';
+import { ModuleHeader } from './shared/SharedUI';
+import { useToast } from './shared/ToastContext';
 
 const STORAGE_KEY = 'lpo_generator_data_v1';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -97,6 +99,7 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addToast } = useToast();
 
   useEffect(() => {
     try {
@@ -157,6 +160,7 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
       setLpoData(freshData);
       setFormKey(prev => prev + 1);
       localStorage.removeItem(STORAGE_KEY);
+      addToast('Form has been reset.', 'info');
     }
   };
 
@@ -223,7 +227,7 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
     const { errors, warnings } = validateData();
     
     if (errors.length > 0) {
-      alert(`Unable to generate PDF:\n\n• ${errors.join("\n• ")}`);
+      addToast(`Validation failed: ${errors[0]}${errors.length > 1 ? ` (+${errors.length - 1} more)` : ''}`, 'error');
       return;
     }
 
@@ -234,7 +238,13 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
       if (!proceed) return;
     }
 
-    generateLPOPDF(lpoData);
+    try {
+      generateLPOPDF(lpoData);
+      addToast('PDF generated successfully.', 'success');
+    } catch (e) {
+      addToast('An error occurred while generating PDF.', 'error');
+      console.error(e);
+    }
   };
 
   const handleExportData = () => {
@@ -248,6 +258,7 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    addToast('Data exported successfully.', 'success');
   };
 
   const handleImportClick = () => {
@@ -266,12 +277,12 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
           const restored = hydrateData(parsed);
           setLpoData(restored);
           setFormKey(prev => prev + 1);
-          alert('Data imported successfully.');
+          addToast('Data imported successfully.', 'success');
         } else {
-          alert('Invalid data file format.');
+          addToast('Invalid data file format.', 'error');
         }
       } catch (err) {
-        alert('Failed to read file.');
+        addToast('Failed to read file.', 'error');
         console.error(err);
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -284,73 +295,51 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
 
   return (
     <div className="app-shell">
-      {/* Header */}
-      <header className="app-header">
-        <div className="module-header-bar" style={{ padding: '0.5rem 1.5rem', background: 'var(--slate-800)' }}>
-          <button onClick={onNavigateHome} className="module-back-btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--slate-300)' }}>
-            <ArrowLeft size={16} /> Back to Home
-          </button>
-        </div>
-        <div className="app-header-inner">
-          <div className="header-credit">
-             <span>Made with ❤️ using Gemini AI. Let’s</span>
-             <a 
-               href="https://www.linkedin.com/in/mismailyilmaz" 
-               target="_blank" 
-               rel="noopener noreferrer"
-             >
-               connect
-             </a>
-             <span>!</span>
-          </div>
-          <div className="header-actions">
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleImportFile} 
-              accept=".json" 
-              className="hidden" 
-            />
-            
-            <button 
-              type="button"
-              onClick={handleImportClick}
-              className="btn btn-ghost"
-              title="Import Data"
-            >
-              <Upload size={16} />
-              <span className="btn-label">Import</span>
-            </button>
-            <button 
-              type="button"
-              onClick={handleExportData}
-              className="btn btn-ghost"
-              title="Export Data"
-            >
-              <Download size={16} />
-              <span className="btn-label">Export</span>
-            </button>
-            <div className="header-divider"></div>
-            <button 
-              type="button"
-              onClick={handleReset}
-              className="btn-danger-ghost"
-              title="Reset Form"
-            >
-              <RotateCcw size={18} />
-            </button>
-            <button 
-              type="button"
-              onClick={handleDownloadPDF}
-              className="btn btn-primary"
-              style={{ marginLeft: '0.5rem' }}
-            >
-              <FileDown size={18} />
-              Generate PDF
-            </button>
-          </div>
-        </div>
-      </header>
+      <ModuleHeader title="Hotel LPO" onNavigateHome={onNavigateHome}>
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleImportFile} 
+          accept=".json" 
+          className="hidden" 
+        />
+        <button 
+          type="button"
+          onClick={handleImportClick}
+          className="btn btn-ghost"
+          title="Import Data"
+        >
+          <Upload size={16} />
+          <span className="btn-label">Import</span>
+        </button>
+        <button 
+          type="button"
+          onClick={handleExportData}
+          className="btn btn-ghost"
+          title="Export Data"
+        >
+          <Download size={16} />
+          <span className="btn-label">Export</span>
+        </button>
+        <div className="header-divider"></div>
+        <button 
+          type="button"
+          onClick={handleReset}
+          className="btn-danger-ghost"
+          title="Reset Form"
+        >
+          <RotateCcw size={18} />
+        </button>
+        <button 
+          type="button"
+          onClick={handleDownloadPDF}
+          className="btn btn-primary"
+          style={{ marginLeft: '0.5rem' }}
+        >
+          <FileDown size={18} />
+          Generate PDF
+        </button>
+      </ModuleHeader>
 
       {/* Main Content */}
       <main className="main-content">

@@ -63,15 +63,7 @@ const ModeSelectorPage: React.FC<ModeSelectorPageProps> = ({ onSelectMode }) => 
         </div>
 
         <div className="mode-selector-footer">
-          <span>Made with ❤️ using Gemini AI. Let's </span>
-          <a
-            href="https://www.linkedin.com/in/mismailyilmaz"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            connect
-          </a>
-          <span>!</span>
+          <span>AI-Orchestrated with ❤️</span>
         </div>
       </div>
     </div>

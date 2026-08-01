@@ -5,7 +5,8 @@ import { HotelInvoiceData } from '../types/generalInvoice';
 import { 
   getAmountInWords, generateDocNumber, PDF_COLORS, 
   getPdfTextHelpers, PDF_TABLE_HEAD_STYLES, PDF_TABLE_BODY_STYLES, 
-  drawPdfFooter, addLogoPdf, drawSignatureArea 
+  PDF_TABLE_ALTERNATE_ROW_STYLES,
+  drawPdfFooter, addLogoPdf, drawSignatureArea, drawWatermark
 } from './pdfUtils';
 
 export const generateHotelInvoicePDF = (data: HotelInvoiceData) => {
@@ -75,7 +76,6 @@ export const generateHotelInvoicePDF = (data: HotelInvoiceData) => {
 
   // Guest Details
   let guestY = yCursor - (data.hotelAddress ? doc.splitTextToSize(data.hotelAddress, 60).length * 4.5 : 0) - (data.hotelPhone ? 4.5 : 0) - (data.hotelEmail ? 4.5 : 0);
-  if (guestY < 55) guestY = 55; // Reset to top of details area
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -139,9 +139,10 @@ export const generateHotelInvoicePDF = (data: HotelInvoiceData) => {
     startY: yCursor,
     head: [['Date', 'Category', 'Description', 'Qty', 'Rate', 'Amount']],
     body: tableData,
-    theme: 'grid',
+    theme: 'striped',
     headStyles: PDF_TABLE_HEAD_STYLES,
     bodyStyles: PDF_TABLE_BODY_STYLES,
+    alternateRowStyles: PDF_TABLE_ALTERNATE_ROW_STYLES,
     columnStyles: {
       0: { cellWidth: 20 },
       1: { cellWidth: 35 },
@@ -244,9 +245,10 @@ export const generateHotelInvoicePDF = (data: HotelInvoiceData) => {
       startY: yCursor,
       head: [['Date', 'Method', 'Reference', 'Amount']],
       body: paymentData,
-      theme: 'plain',
+      theme: 'striped',
       headStyles: { ...PDF_TABLE_HEAD_STYLES, fillColor: [248, 250, 252], textColor: PDF_COLORS.muted },
       bodyStyles: { ...PDF_TABLE_BODY_STYLES, fontSize: 8 },
+      alternateRowStyles: PDF_TABLE_ALTERNATE_ROW_STYLES,
       columnStyles: {
         0: { cellWidth: 30 },
         1: { cellWidth: 40 },
@@ -292,6 +294,10 @@ export const generateHotelInvoicePDF = (data: HotelInvoiceData) => {
 
   // --- FOOTER ---
   drawPdfFooter(doc, invoiceNum, 'Thank you for your business. For any queries regarding this invoice, please contact the hotel reception.');
+
+  if (data.watermarkText && data.watermarkText.trim()) {
+    drawWatermark(doc, data.watermarkText);
+  }
 
   // --- SAVE ---
   const fileName = `Invoice_${invoiceNum}_${data.hotelName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;

@@ -53,35 +53,68 @@
 
 ## 🧪 Testing & Quality Assurance
 
-Ordris includes a comprehensive automated testing framework built with **Vitest**, **React Testing Library**, and **jsdom**.
+Ordris includes a comprehensive automated testing framework built with **Vitest**, **React Testing Library**, and **jsdom**. The entire suite is deeply linked — firing a single command executes every unit, integration, layout, and service test concurrently.
 
-### Test Commands
+### 🌐 Cross-Platform Execution
 
-| Command | Purpose |
-| :--- | :--- |
-| `npm run test` | Executes all unit and integration tests once. |
-| `npm run test:watch` | Starts Vitest in interactive watch mode for TDD. |
-| `npm run test:coverage` | Generates a complete test coverage report in text, JSON, and HTML formats. |
-| `npm run typecheck` | Runs the TypeScript compiler (`tsc --noEmit`) to verify zero type errors. |
+The testing suite relies on Node.js and is fully cross-platform. It automatically runs all `.test.ts` and `.test.tsx` files across the codebase in a single batch. Here is how to fire the suite on your specific operating system:
 
-### Running the Test Suite
+#### 🪟 Windows (Command Prompt or PowerShell)
+1. Press `Win + R`, type `cmd` (or `powershell`), and press Enter.
+2. Navigate to your project directory: `cd D:\Projects\Ordris` (or your specific path).
+3. Ensure dependencies are installed: `npm install`
+4. **Fire all tests at once**:
+   ```cmd
+   npm run test
+   ```
+5. **Run tests with coverage report**:
+   ```cmd
+   npm run test:coverage
+   ```
 
-Run the automated test suite locally:
+#### 🍎 macOS (Terminal or iTerm2)
+1. Open Spotlight Search (`Cmd + Space`), type `Terminal`, and press Enter.
+2. Navigate to your project directory: `cd ~/path/to/Ordris`
+3. Ensure dependencies are installed: `npm install`
+4. **Fire all tests at once**:
+   ```bash
+   npm run test
+   ```
+5. **Run tests with coverage report**:
+   ```bash
+   npm run test:coverage
+   ```
+
+#### 🐧 Linux (Bash / Zsh)
+1. Open your terminal emulator (`Ctrl + Alt + T` on Ubuntu/Debian).
+2. Navigate to your project directory: `cd ~/path/to/Ordris`
+3. Ensure dependencies are installed: `npm install`
+4. **Fire all tests at once**:
+   ```bash
+   npm run test
+   ```
+5. **Run tests with coverage report**:
+   ```bash
+   npm run test:coverage
+   ```
+
+### 📊 Understanding the Output & Test Types
+
+When you run `npm run test:coverage`, Vitest links and executes the following simultaneously:
+- **Component Tests**: Validates that all React UI elements render properly without missing DOM nodes.
+- **Service Tests**: Validates PDF generation boundaries using `jsPDF` mocks.
+- **Integration Tests**: Validates form state changes, data parsing, and user interactions.
+
+A coverage report table will print to the terminal, and an interactive HTML report will be generated in the `coverage/index.html` directory.
+
+### 🔄 Interactive Watch Mode (TDD)
+If you are actively developing and want the test suite to watch your files and instantly fire only the related tests when a file is saved, run:
 ```bash
-npm run test
+npm run test:watch
 ```
 
-### Running Coverage Reports
-
-Generate detailed statement, branch, function, and line coverage metrics:
-```bash
-npm run test:coverage
-```
-Coverage reports will be generated in the `coverage/` directory (viewable in browser via `coverage/index.html`).
-
-### Running Type Safety Checks
-
-Verify TypeScript type safety across all components, modules, and services:
+### 🛡️ Running Type Safety Checks
+To verify TypeScript type safety across all components and modules without running the actual test assertions:
 ```bash
 npm run typecheck
 ```

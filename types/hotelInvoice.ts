@@ -1,3 +1,5 @@
+import { GLOBAL_CURRENCIES } from './currencies';
+
 export type GeneralInvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Cancelled' | 'Partially Paid';
 
 export interface InvoiceItem {
@@ -64,6 +66,7 @@ export interface GeneralInvoiceData {
   globalTaxLabel: string;
   discountType: 'percentage' | 'flat';
   discountValue: number;
+  watermarkText?: string;
 }
 
 export const INITIAL_GENERAL_INVOICE: GeneralInvoiceData = {
@@ -86,4 +89,4 @@ export const INITIAL_GENERAL_INVOICE: GeneralInvoiceData = {
   discountValue: 0
 };
 
-export const GEN_INVOICE_CURRENCIES = ['USD', 'EUR', 'AED', 'GBP', 'SAR', 'INR', 'CAD', 'AUD', 'SGD', 'CHF', 'JPY', 'CNY'];
+export const GEN_INVOICE_CURRENCIES = GLOBAL_CURRENCIES;

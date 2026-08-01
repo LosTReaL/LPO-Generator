@@ -64,7 +64,7 @@ export const GeneralLPOForm: React.FC<GeneralLPOFormProps> = ({ data, onChange }
   };
 
   // Calculate totals
-  const subtotal = data.items.reduce((sum, item) => sum + (item.total || 0), 0);
+  const subtotal = (data.items || []).reduce((sum, item) => sum + (item.total || 0), 0);
   
   let discountAmount = 0;
   if (data.discountType === 'percentage') {
@@ -427,6 +427,19 @@ export const GeneralLPOForm: React.FC<GeneralLPOFormProps> = ({ data, onChange }
                   value={data.signatureName || ''}
                   onChange={(val) => handleChange('signatureName', val)}
                   placeholder="Name of authorized person"
+                />
+              </div>
+            </Checkbox>
+            <Checkbox 
+              label="Apply Watermark" 
+              checked={!!data.watermarkText}
+              onChange={(val) => handleChange('watermarkText', val ? 'DRAFT' : '')}
+            >
+              <div style={{ marginTop: '8px' }}>
+                <Input 
+                  value={data.watermarkText || ''} 
+                  onChange={(v) => handleChange('watermarkText', v)} 
+                  placeholder="e.g. DRAFT or CANCELLED"
                 />
               </div>
             </Checkbox>

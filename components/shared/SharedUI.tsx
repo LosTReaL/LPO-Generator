@@ -1,5 +1,5 @@
 import React, { useRef, useLayoutEffect } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, ArrowLeft } from 'lucide-react';
 
 // ============================================================
 // Shared UI Components
@@ -224,3 +224,37 @@ export const StatusBadge = ({ status }: { status: string }) => {
     </span>
   );
 };
+
+// --- Module Header ---
+export const ModuleHeader = ({
+  title,
+  onNavigateHome,
+  children
+}: {
+  title: string;
+  onNavigateHome: () => void;
+  children?: React.ReactNode;
+}) => (
+  <>
+    <div className="module-header-bar" style={{ padding: '0.5rem 1.5rem', background: 'var(--slate-800)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <button onClick={onNavigateHome} className="module-back-btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--slate-300)' }}>
+        <ArrowLeft size={16} /> Home
+      </button>
+      <span className="module-breadcrumb-sep" style={{ color: 'var(--slate-500)' }}>/</span>
+      <span className="module-breadcrumb-current" style={{ color: 'var(--slate-300)', fontSize: '0.875rem' }}>{title}</span>
+    </div>
+    <header className="app-header">
+      <div className="app-header-inner">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600 }}>{title} Generator</h1>
+          <div className="header-credit" style={{ fontSize: '0.75rem', color: 'var(--slate-400)' }}>
+            AI-Orchestrated with ❤️
+          </div>
+        </div>
+        <div className="header-actions">
+          {children}
+        </div>
+      </div>
+    </header>
+  </>
+);

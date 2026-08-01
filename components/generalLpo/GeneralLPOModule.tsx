@@ -3,6 +3,8 @@ import { GeneralLPOForm } from './GeneralLPOForm';
 import { GeneralLPOData } from '../../types/generalLpo';
 import { generateGeneralLPOPDF } from '../../services/generalLpoPdfService';
 import { Upload, Download, RefreshCw, FileCheck, ArrowLeft } from 'lucide-react';
+import { ModuleHeader } from '../shared/SharedUI';
+import { useToast } from '../shared/ToastContext';
 
 const STORAGE_KEY = 'ordris_general_lpo_v1';
 const STORAGE_EXPIRY_DAYS = 7;
@@ -41,6 +43,7 @@ interface Props {
 export default function GeneralLPOModule({ onNavigateHome }: Props) {
   const [data, setData] = useState<GeneralLPOData>(initialData);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addToast } = useToast();
 
   // Load from localStorage
   useEffect(() => {
@@ -89,10 +92,12 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
         const parsed = JSON.parse(content);
         if (parsed && typeof parsed === 'object') {
           setData({ ...initialData, ...parsed });
-          alert('Data imported successfully!');
+          addToast('Data imported successfully.', 'success');
+        } else {
+          addToast('Invalid data file format.', 'error');
         }
       } catch (err) {
-        alert('Invalid JSON file.');
+        addToast('Invalid JSON file.', 'error');
       }
     };
     reader.readAsText(file);
@@ -112,63 +117,59 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    addToast('Data exported successfully.', 'success');
   };
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset all form data? This cannot be undone.')) {
       setData(initialData);
+      addToast('Form has been reset.', 'info');
     }
   };
 
   const handleGeneratePDF = () => {
     if (!data.companyInfo?.name?.trim()) {
-      alert('Company Name is required.');
+      addToast('Company Name is required.', 'error');
       return;
     }
     if (!data.items || data.items.length === 0) {
-      alert('At least one line item is required.');
+      addToast('At least one line item is required.', 'error');
       return;
     }
-    generateGeneralLPOPDF(data);
+    try {
+      generateGeneralLPOPDF(data);
+      addToast('PDF generated successfully.', 'success');
+    } catch (e) {
+      addToast('An error occurred while generating PDF.', 'error');
+      console.error(e);
+    }
   };
 
   return (
     <div className="app-shell">
       <div className="module-wrapper">
-        <div className="module-header-bar">
-          <button className="module-back-btn" onClick={onNavigateHome}>
-            <ArrowLeft size={16} /> Home
-          </button>
-          <span className="module-breadcrumb-sep">/</span>
-          <span className="module-breadcrumb-current">General LPO</span>
-        </div>
-        <header className="app-header">
-        <div className="app-header-inner">
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600 }}>General LPO Generator</h1>
-          <div className="header-actions">
-            <input 
-              type="file" 
-              accept=".json" 
-              ref={fileInputRef} 
-              style={{ display: 'none' }} 
-              onChange={handleImport} 
-            />
-            <button className="btn-ghost" onClick={() => fileInputRef.current?.click()} title="Import JSON">
-              <Upload size={18} /> Import
-            </button>
-            <button className="btn-ghost" onClick={handleExport} title="Export JSON">
-              <Download size={18} /> Export
-            </button>
-            <div className="header-divider" />
-            <button className="btn-danger-ghost" onClick={handleReset} title="Reset Form">
-              <RefreshCw size={18} /> Reset
-            </button>
-            <button className="btn-primary" onClick={handleGeneratePDF}>
-              <FileCheck size={18} style={{ marginRight: '0.5rem' }} /> Generate PDF
-            </button>
-          </div>
-        </div>
-      </header>
+      <ModuleHeader title="General LPO" onNavigateHome={onNavigateHome}>
+        <input 
+          type="file" 
+          accept=".json" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          onChange={handleImport} 
+        />
+        <button className="btn-ghost" onClick={() => fileInputRef.current?.click()} title="Import JSON">
+          <Upload size={18} /> Import
+        </button>
+        <button className="btn-ghost" onClick={handleExport} title="Export JSON">
+          <Download size={18} /> Export
+        </button>
+        <div className="header-divider" />
+        <button className="btn-danger-ghost" onClick={handleReset} title="Reset Form">
+          <RefreshCw size={18} /> Reset
+        </button>
+        <button className="btn-primary" onClick={handleGeneratePDF}>
+          <FileCheck size={18} style={{ marginRight: '0.5rem' }} /> Generate PDF
+        </button>
+      </ModuleHeader>
       
       <main className="main-content">
         <div className="content-card">

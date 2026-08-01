@@ -44,6 +44,9 @@ export interface PdfOptions {
   poHeaderTitle: string;
   manualPONumber: boolean;
   poNumber: string;
+
+  // Enhancements
+  watermarkText: string;
 }
 
 export interface GuestInfo {
@@ -109,7 +112,8 @@ export const INITIAL_PDF_OPTIONS: PdfOptions = {
   manualPOHeader: false,
   poHeaderTitle: "PURCHASE ORDER",
   manualPONumber: false,
-  poNumber: ""
+  poNumber: "",
+  watermarkText: ""
 };
 
 export const INITIAL_LPO_DATA: LPOData = {

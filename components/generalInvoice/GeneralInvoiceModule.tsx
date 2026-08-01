@@ -3,6 +3,8 @@ import { Download, RotateCcw, Upload, FileText, CheckCircle, ArrowLeft } from 'l
 import { GeneralInvoiceForm } from './GeneralInvoiceForm';
 import { generateGeneralInvoicePDF } from '../../services/generalInvoicePdfService';
 import { GeneralInvoiceData, INITIAL_GENERAL_INVOICE } from '../../types/hotelInvoice';
+import { ModuleHeader } from '../shared/SharedUI';
+import { useToast } from '../shared/ToastContext';
 
 const STORAGE_KEY = 'ordris_general_invoice_v1';
 const EXPIRY_DAYS = 7;
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
+  const { addToast } = useToast();
   const [data, setData] = useState<GeneralInvoiceData>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -40,6 +43,7 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset the invoice? All unsaved data will be lost.')) {
       setData(INITIAL_GENERAL_INVOICE);
+      addToast('Form has been reset.', 'info');
     }
   };
 
@@ -51,6 +55,7 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
+    addToast('Data exported successfully.', 'success');
   };
 
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,8 +67,9 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
       try {
         const importedData = JSON.parse(event.target?.result as string);
         setData({ ...INITIAL_GENERAL_INVOICE, ...importedData });
+        addToast('Data imported successfully.', 'success');
       } catch (err) {
-        alert('Failed to parse JSON file.');
+        addToast('Failed to parse JSON file.', 'error');
       }
     };
     reader.readAsText(file);
@@ -72,62 +78,50 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
 
   const handleGeneratePDF = () => {
     if (!data.companyName) {
-      alert('Company Name is required.');
+      addToast('Company Name is required.', 'error');
       return;
     }
     if (!data.customer.name) {
-      alert('Customer Name is required.');
+      addToast('Customer Name is required.', 'error');
       return;
     }
     if (data.items.length === 0) {
-      alert('At least one item is required.');
+      addToast('At least one item is required.', 'error');
       return;
     }
 
-    generateGeneralInvoicePDF(data);
+    try {
+      generateGeneralInvoicePDF(data);
+      addToast('PDF generated successfully.', 'success');
+    } catch (e) {
+      addToast('An error occurred while generating PDF.', 'error');
+      console.error(e);
+    }
   };
 
   return (
     <div className="app-shell">
       <div className="module-container">
-        <div className="module-header-bar">
-          <button className="module-back-btn" onClick={onNavigateHome}>
-            <ArrowLeft size={16} /> Home
-          </button>
-          <span className="module-breadcrumb-sep">/</span>
-          <span className="module-breadcrumb-current">General Invoice</span>
-        </div>
-        <header className="app-header">
-        <div className="app-header-inner">
-          <div className="header-left">
-            <h1 className="header-title">
-              <FileText size={24} className="text-primary-600" />
-              General Invoice
-            </h1>
-            <p className="header-subtitle">Create and manage professional general invoices</p>
-          </div>
-          <div className="header-actions">
-            <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
-              <Upload size={16} />
-              Import
-              <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} />
-            </label>
-            <button onClick={handleExportJSON} className="btn btn-ghost">
-              <Download size={16} />
-              Export
-            </button>
-            <button onClick={handleReset} className="btn btn-danger-ghost">
-              <RotateCcw size={16} />
-              Reset
-            </button>
-            <div className="header-divider"></div>
-            <button onClick={handleGeneratePDF} className="btn btn-primary">
-              <CheckCircle size={16} />
-              Generate PDF
-            </button>
-          </div>
-        </div>
-      </header>
+      <ModuleHeader title="General Invoice" onNavigateHome={onNavigateHome}>
+        <label className="btn btn-ghost" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Upload size={16} />
+          Import
+          <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} />
+        </label>
+        <button onClick={handleExportJSON} className="btn btn-ghost">
+          <Download size={16} />
+          Export
+        </button>
+        <div className="header-divider"></div>
+        <button onClick={handleReset} className="btn btn-danger-ghost">
+          <RotateCcw size={16} />
+          Reset
+        </button>
+        <button onClick={handleGeneratePDF} className="btn btn-primary">
+          <CheckCircle size={16} />
+          Generate PDF
+        </button>
+      </ModuleHeader>
 
       <main className="main-content">
         <GeneralInvoiceForm data={data} setData={setData} />

@@ -3,6 +3,8 @@ import { Download, Upload, RefreshCw, FileText, ArrowLeft } from 'lucide-react';
 import { HotelInvoiceData, INITIAL_HOTEL_INVOICE } from '../../types/generalInvoice';
 import { HotelInvoiceForm } from './HotelInvoiceForm';
 import { generateHotelInvoicePDF } from '../../services/hotelInvoicePdfService';
+import { ModuleHeader } from '../shared/SharedUI';
+import { useToast } from '../shared/ToastContext';
 
 const STORAGE_KEY = 'ordris_hotel_invoice_v1';
 const EXPIRY_DAYS = 7;
@@ -18,6 +20,7 @@ interface Props {
 
 export default function HotelInvoiceModule({ onNavigateHome }: Props) {
   const [data, setData] = useState<HotelInvoiceData>(INITIAL_HOTEL_INVOICE);
+  const { addToast } = useToast();
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -53,6 +56,7 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset all form data? This cannot be undone.')) {
       setData(INITIAL_HOTEL_INVOICE);
+      addToast('Form has been reset.', 'info');
     }
   };
 
@@ -67,6 +71,7 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    addToast('Data exported successfully.', 'success');
   };
 
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,10 +91,12 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
         
         setData({ ...INITIAL_HOTEL_INVOICE, ...importedData });
         
+        
         // Reset file input
         if (e.target) e.target.value = '';
+        addToast('Data imported successfully.', 'success');
       } catch (error) {
-        alert('Invalid JSON file. Could not import data.');
+        addToast('Invalid JSON file. Could not import data.', 'error');
         console.error(error);
       }
     };
@@ -99,67 +106,58 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
   const handleGeneratePDF = () => {
     // Validation
     if (!data.hotelName.trim()) {
-      alert("Hotel Name is required.");
+      addToast("Hotel Name is required.", "error");
       return;
     }
     if (!data.primaryGuest.name.trim()) {
-      alert("Primary Guest Name is required.");
+      addToast("Primary Guest Name is required.", "error");
       return;
     }
     if (data.lineItems.length === 0) {
-      alert("At least one charge line item is required.");
+      addToast("At least one charge line item is required.", "error");
       return;
     }
 
-    generateHotelInvoicePDF(data);
+    try {
+      generateHotelInvoicePDF(data);
+      addToast("PDF generated successfully.", "success");
+    } catch (e) {
+      addToast("An error occurred while generating PDF.", "error");
+      console.error(e);
+    }
   };
 
   return (
     <div className="app-shell">
       <div className="module-wrapper">
-        <div className="module-header-bar">
-          <button className="module-back-btn" onClick={onNavigateHome}>
-            <ArrowLeft size={16} /> Home
-          </button>
-          <span className="module-breadcrumb-sep">/</span>
-          <span className="module-breadcrumb-current">Hotel Invoice</span>
+      <ModuleHeader title="Hotel Invoice" onNavigateHome={onNavigateHome}>
+        <div>
+          <label htmlFor="import-json" className="btn-ghost" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Upload size={16} /> Import
+          </label>
+          <input 
+            id="import-json" 
+            type="file" 
+            accept=".json" 
+            onChange={handleImportJSON} 
+            style={{ display: 'none' }} 
+          />
         </div>
-        <header className="app-header">
-        <div className="app-header-inner">
-          <div className="header-title-group">
-            <h1 className="header-title">Hotel Invoice Generator</h1>
-          </div>
-          
-          <div className="header-actions">
-            <div>
-              <label htmlFor="import-json" className="btn-ghost" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Upload size={16} /> Import
-              </label>
-              <input 
-                id="import-json" 
-                type="file" 
-                accept=".json" 
-                onChange={handleImportJSON} 
-                style={{ display: 'none' }} 
-              />
-            </div>
-            
-            <button className="btn-ghost" onClick={handleExportJSON}>
-              <Download size={16} /> Export
-            </button>
-            
-            <div className="header-divider"></div>
-            
-            <button className="btn-danger-ghost" onClick={handleReset}>
-              <RefreshCw size={16} /> Reset
-            </button>
-            
-            <button className="btn-primary" onClick={handleGeneratePDF}>
-              <FileText size={16} /> Generate PDF
-            </button>
-          </div>
-        </div>
-      </header>
+        
+        <button className="btn-ghost" onClick={handleExportJSON}>
+          <Download size={16} /> Export
+        </button>
+        
+        <div className="header-divider"></div>
+        
+        <button className="btn-danger-ghost" onClick={handleReset}>
+          <RefreshCw size={16} /> Reset
+        </button>
+        
+        <button className="btn-primary" onClick={handleGeneratePDF}>
+          <FileText size={16} /> Generate PDF
+        </button>
+      </ModuleHeader>
 
       <main className="main-content">
         <div className="content-card">

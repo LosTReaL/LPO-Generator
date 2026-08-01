@@ -1,5 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import ModeSelectorPage from './components/ModeSelectorPage';
+import { ToastProvider } from './components/shared/ToastContext';
+import { ErrorBoundary } from './components/shared/ErrorBoundary';
 
 type AppMode = 'home' | 'hotel-lpo' | 'general-lpo' | 'hotel-invoice' | 'general-invoice';
 
@@ -67,15 +69,25 @@ export default function App() {
   const navigateHome = () => navigateTo('home');
 
   if (currentMode === 'home') {
-    return <ModeSelectorPage onSelectMode={(mode) => navigateTo(mode as AppMode)} />;
+    return (
+      <ErrorBoundary>
+        <ToastProvider>
+          <ModeSelectorPage onSelectMode={(mode) => navigateTo(mode as AppMode)} />
+        </ToastProvider>
+      </ErrorBoundary>
+    );
   }
 
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      {currentMode === 'hotel-lpo' && <HotelLPOModule onNavigateHome={navigateHome} />}
-      {currentMode === 'general-lpo' && <GeneralLPOModule onNavigateHome={navigateHome} />}
-      {currentMode === 'hotel-invoice' && <HotelInvoiceModule onNavigateHome={navigateHome} />}
-      {currentMode === 'general-invoice' && <GeneralInvoiceModule onNavigateHome={navigateHome} />}
-    </Suspense>
+    <ErrorBoundary>
+      <ToastProvider>
+        <Suspense fallback={<LoadingFallback />}>
+          {currentMode === 'hotel-lpo' && <HotelLPOModule onNavigateHome={navigateHome} />}
+          {currentMode === 'general-lpo' && <GeneralLPOModule onNavigateHome={navigateHome} />}
+          {currentMode === 'hotel-invoice' && <HotelInvoiceModule onNavigateHome={navigateHome} />}
+          {currentMode === 'general-invoice' && <GeneralInvoiceModule onNavigateHome={navigateHome} />}
+        </Suspense>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }

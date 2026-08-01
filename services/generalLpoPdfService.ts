@@ -8,10 +8,12 @@ import {
   PDF_COLORS, 
   getPdfTextHelpers, 
   PDF_TABLE_HEAD_STYLES, 
-  PDF_TABLE_BODY_STYLES, 
+  PDF_TABLE_BODY_STYLES,
+  PDF_TABLE_ALTERNATE_ROW_STYLES,
   drawPdfFooter, 
   addLogoPdf, 
-  drawSignatureArea 
+  drawSignatureArea,
+  drawWatermark
 } from './pdfUtils';
 
 export const generateGeneralLPOPDF = (data: GeneralLPOData): void => {
@@ -143,6 +145,7 @@ export const generateGeneralLPOPDF = (data: GeneralLPOData): void => {
     body: tableData,
     headStyles: PDF_TABLE_HEAD_STYLES,
     bodyStyles: PDF_TABLE_BODY_STYLES,
+    alternateRowStyles: PDF_TABLE_ALTERNATE_ROW_STYLES,
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
       1: { cellWidth: 'auto' },
@@ -266,6 +269,10 @@ export const generateGeneralLPOPDF = (data: GeneralLPOData): void => {
 
   // 8. Footer
   drawPdfFooter(doc, poNumber, 'This is a computer-generated Purchase Order.');
+
+  if (data.watermarkText && data.watermarkText.trim()) {
+    drawWatermark(doc, data.watermarkText);
+  }
 
   // Save the PDF
   const safeSupplierName = supplierName.replace(/[^a-z0-9]/gi, '_').toLowerCase();

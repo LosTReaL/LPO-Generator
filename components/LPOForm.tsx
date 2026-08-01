@@ -574,6 +574,19 @@ const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
                         icon={FileSpreadsheet}
                       />
                     </Checkbox>
+
+                    <Checkbox 
+                      label="Apply Watermark" 
+                      checked={!!data.pdfOptions.watermarkText}
+                      onChange={(val) => updatePdfOption('watermarkText', val ? 'DRAFT' : '')}
+                    >
+                      <Input 
+                        value={data.pdfOptions.watermarkText || ''} 
+                        onChange={(v) => updatePdfOption('watermarkText', v)} 
+                        placeholder="e.g. DRAFT or CANCELLED"
+                        icon={Type}
+                      />
+                    </Checkbox>
                  </div>
 
                </div>

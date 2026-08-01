@@ -111,6 +111,10 @@ export const PDF_TABLE_HEAD_STYLES = {
   lineWidth: 0,
 };
 
+export const PDF_TABLE_ALTERNATE_ROW_STYLES = {
+  fillColor: PDF_COLORS.stripe,
+};
+
 export const PDF_TABLE_BODY_STYLES = {
   fontSize: 9,
   cellPadding: { top: 4, bottom: 4, left: 3, right: 3 },
@@ -201,5 +205,34 @@ export const drawSignatureArea = (doc: jsPDF, yCursor: number, opts: {
     doc.setFont("helvetica", "normal");
     helpers.setPrimary();
     doc.text("Date:", sigX, yCursor + 18);
+  }
+};
+
+// Draw optional diagonal watermark
+export const drawWatermark = (doc: jsPDF, text: string) => {
+  if (!text || !text.trim()) return;
+  
+  const pageCount = doc.getNumberOfPages();
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.saveGraphicsState();
+    doc.setGState(new doc.GState({ opacity: 0.1 }));
+    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(60);
+    doc.setFont("helvetica", "bold");
+    
+    // Calculate angle for diagonal text
+    const angle = Math.atan2(pageHeight, pageWidth) * (180 / Math.PI);
+    
+    // Write text diagonally in the center of the page
+    doc.text(text.toUpperCase(), pageWidth / 2, pageHeight / 2, {
+      align: 'center',
+      angle: 45
+    });
+    
+    doc.restoreGraphicsState();
   }
 };

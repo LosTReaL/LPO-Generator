@@ -345,6 +345,14 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
               <Label>Terms & Conditions</Label>
               <TextArea value={data.termsAndConditions} onChange={v => updateField('termsAndConditions', v)} placeholder="Terms and conditions..." rows={2} />
             </div>
+            
+            <div className="form-group full-width">
+              <Checkbox label="Apply Watermark" checked={!!data.watermarkText} onChange={v => updateField('watermarkText', v ? 'DRAFT' : '')}>
+                <div className="mt-2">
+                   <Input value={data.watermarkText || ''} onChange={v => updateField('watermarkText', v as string)} placeholder="e.g. DRAFT or CANCELLED" />
+                </div>
+              </Checkbox>
+            </div>
            </div>
         </Section>
 

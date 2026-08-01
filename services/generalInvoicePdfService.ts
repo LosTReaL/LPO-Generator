@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { GeneralInvoiceData } from '../types/hotelInvoice';
-import { getAmountInWords, drawPdfFooter } from './pdfUtils';
+import { getAmountInWords, drawPdfFooter, drawWatermark, PDF_TABLE_HEAD_STYLES, PDF_TABLE_BODY_STYLES, PDF_TABLE_ALTERNATE_ROW_STYLES } from './pdfUtils';
 
 const formatCurrency = (amount: number, currency: string) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
@@ -93,9 +93,10 @@ export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
     startY: currentY,
     head: [tableColumn],
     body: tableRows,
-    theme: 'grid',
-    headStyles: { fillColor: [63, 81, 181] },
-    styles: { fontSize: 9 },
+    theme: 'striped',
+    headStyles: PDF_TABLE_HEAD_STYLES,
+    bodyStyles: PDF_TABLE_BODY_STYLES,
+    alternateRowStyles: PDF_TABLE_ALTERNATE_ROW_STYLES,
   });
 
   let finalY = (doc as any).lastAutoTable.finalY + 10;
@@ -197,9 +198,11 @@ export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
       startY: finalY,
       head: [['Date', 'Method', 'Reference', 'Amount']],
       body: paymentRows,
-      theme: 'plain',
+      theme: 'striped',
       styles: { fontSize: 8 },
-      headStyles: { fontStyle: 'bold', textColor: [100, 100, 100] }
+      headStyles: { ...PDF_TABLE_HEAD_STYLES },
+      bodyStyles: { ...PDF_TABLE_BODY_STYLES },
+      alternateRowStyles: PDF_TABLE_ALTERNATE_ROW_STYLES,
     });
     finalY = (doc as any).lastAutoTable.finalY + 10;
   }
@@ -245,6 +248,10 @@ export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
 
   // Footer
   drawPdfFooter(doc, data.invoiceNumber || 'DRAFT', 'Thank you for your business.');
+
+  if (data.watermarkText && data.watermarkText.trim()) {
+    drawWatermark(doc, data.watermarkText);
+  }
 
   // Save
   const safeCustomer = data.customer.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();

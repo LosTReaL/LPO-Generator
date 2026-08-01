@@ -1,3 +1,5 @@
+import { GLOBAL_CURRENCIES } from './currencies';
+
 export type LPOStatus = 'Draft' | 'Pending Approval' | 'Approved' | 'Sent to Supplier' | 'Partially Received' | 'Completed' | 'Cancelled';
 
 export interface LineItem {
@@ -43,6 +45,7 @@ export interface GeneralLPOData {
   termsAndConditions?: string;
   logoUpload?: string;
   signatureName?: string;
+  watermarkText?: string;
 }
 
 export const INITIAL_GENERAL_LPO: GeneralLPOData = {
@@ -62,4 +65,4 @@ export const INITIAL_GENERAL_LPO: GeneralLPOData = {
 
 export const UNIT_OPTIONS = ['pcs', 'kg', 'g', 'l', 'ml', 'm', 'cm', 'box', 'pack', 'hr', 'day', 'month', 'unit', 'set'];
 
-export const CURRENCY_LIST = ['USD', 'EUR', 'GBP', 'AED', 'SAR', 'INR', 'CAD', 'AUD', 'SGD', 'CHF', 'JPY', 'CNY'];
+export const CURRENCY_LIST = GLOBAL_CURRENCIES;

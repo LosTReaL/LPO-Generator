@@ -1,3 +1,5 @@
+import { GLOBAL_CURRENCIES } from './currencies';
+
 export interface HotelGuestInfo {
   name: string;
   loyaltyNumber?: string;
@@ -57,6 +59,7 @@ export interface HotelInvoiceData {
   notes?: string;
   showSignature?: boolean;
   signatureName?: string;
+  watermarkText?: string;
 }
 
 export const INITIAL_HOTEL_INVOICE: HotelInvoiceData = {
@@ -81,4 +84,4 @@ export const INITIAL_HOTEL_INVOICE: HotelInvoiceData = {
 
 export const CHARGE_CATEGORIES = ['Room', 'Food & Beverage', 'Spa', 'Laundry', 'Mini Bar', 'Other'];
 export const PAYMENT_METHODS = ['Cash', 'Credit Card', 'Bank Transfer', 'Other'];
-export const HOTEL_INVOICE_CURRENCIES = ['USD', 'EUR', 'AED', 'GBP', 'SAR', 'INR', 'CAD', 'AUD', 'SGD', 'CHF', 'JPY', 'CNY'];
+export const HOTEL_INVOICE_CURRENCIES = GLOBAL_CURRENCIES;

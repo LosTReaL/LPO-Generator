@@ -11,7 +11,9 @@ import {
   PDF_COLORS,
   getPdfTextHelpers,
   PDF_TABLE_HEAD_STYLES,
-  PDF_TABLE_BODY_STYLES
+  PDF_TABLE_BODY_STYLES,
+  PDF_TABLE_ALTERNATE_ROW_STYLES,
+  drawWatermark
 } from './pdfUtils';
 
 export const generateLPOPDF = (data: LPOData) => {
@@ -239,6 +241,7 @@ export const generateLPOPDF = (data: LPOData) => {
     theme: 'plain',
     headStyles: PDF_TABLE_HEAD_STYLES,
     styles: PDF_TABLE_BODY_STYLES,
+    alternateRowStyles: PDF_TABLE_ALTERNATE_ROW_STYLES,
     margin: { left: marginX, right: marginX },
   });
 
@@ -320,7 +323,7 @@ export const generateLPOPDF = (data: LPOData) => {
     theme: 'striped',
     headStyles: { ...PDF_TABLE_HEAD_STYLES },
     styles: { ...PDF_TABLE_BODY_STYLES, valign: 'middle' }, 
-    alternateRowStyles: { fillColor: tableStripe },
+    alternateRowStyles: PDF_TABLE_ALTERNATE_ROW_STYLES,
     columnStyles: dynamicColumnStyles,
     margin: { left: marginX, right: marginX },
   });
@@ -522,6 +525,11 @@ export const generateLPOPDF = (data: LPOData) => {
      const maxDisclaimerWidth = pageWidth - (marginX * 2) - 50;
      const disclaimerLines = doc.splitTextToSize(footerText, maxDisclaimerWidth);
      doc.text(disclaimerLines, marginX, footerY);
+  }
+
+  // Draw Watermark if configured
+  if (opts.watermarkText && opts.watermarkText.trim()) {
+    drawWatermark(doc, opts.watermarkText);
   }
 
   const safeFilename = `LPO_${poNumber}_${data.hotelName.replace(/[^a-z0-9]/gi, '_').substring(0, 10)}.pdf`;

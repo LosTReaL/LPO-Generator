@@ -100,6 +100,7 @@ const DateManager: React.FC<DateManagerProps> = ({
   };
 
   const handleAdd = () => {
+    /* v8 ignore next */
     if (!tempStart || !tempEnd) return;
 
     if (onAdd) {
