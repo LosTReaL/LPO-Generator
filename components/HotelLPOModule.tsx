@@ -309,7 +309,7 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
           className="btn btn-ghost"
           title="Import Data"
         >
-          <Upload size={16} />
+          <Upload size={18} />
           <span className="btn-label">Import</span>
         </button>
         <button 
@@ -318,26 +318,27 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
           className="btn btn-ghost"
           title="Export Data"
         >
-          <Download size={16} />
+          <Download size={18} />
           <span className="btn-label">Export</span>
         </button>
         <div className="header-divider"></div>
         <button 
           type="button"
           onClick={handleReset}
-          className="btn-danger-ghost"
+          className="btn btn-danger-ghost"
           title="Reset Form"
         >
           <RotateCcw size={18} />
+          <span className="btn-label">Reset</span>
         </button>
         <button 
           type="button"
           onClick={handleDownloadPDF}
           className="btn btn-primary"
-          style={{ marginLeft: '0.5rem' }}
+          title="Generate PDF"
         >
           <FileDown size={18} />
-          Generate PDF
+          <span className="btn-label">Generate PDF</span>
         </button>
       </ModuleHeader>
 

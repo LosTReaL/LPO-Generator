@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Download, RotateCcw, Upload, FileText, CheckCircle, ArrowLeft } from 'lucide-react';
 import { GeneralInvoiceForm } from './GeneralInvoiceForm';
 import { generateGeneralInvoicePDF } from '../../services/generalInvoicePdfService';
@@ -15,6 +15,7 @@ interface Props {
 
 export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
   const { addToast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [data, setData] = useState<GeneralInvoiceData>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -103,23 +104,29 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
     <div className="app-shell">
       <div className="module-container">
       <ModuleHeader title="General Invoice" onNavigateHome={onNavigateHome}>
-        <label className="btn btn-ghost" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Upload size={16} />
-          Import
-          <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} />
-        </label>
-        <button onClick={handleExportJSON} className="btn btn-ghost">
-          <Download size={16} />
-          Export
+        <input 
+          type="file" 
+          accept=".json" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          onChange={handleImportJSON} 
+        />
+        <button className="btn btn-ghost" onClick={() => fileInputRef.current?.click()} title="Import JSON">
+          <Upload size={18} />
+          <span className="btn-label">Import</span>
+        </button>
+        <button className="btn btn-ghost" onClick={handleExportJSON} title="Export JSON">
+          <Download size={18} />
+          <span className="btn-label">Export</span>
         </button>
         <div className="header-divider"></div>
-        <button onClick={handleReset} className="btn btn-danger-ghost">
-          <RotateCcw size={16} />
-          Reset
+        <button onClick={handleReset} className="btn btn-danger-ghost" title="Reset Form">
+          <RotateCcw size={18} />
+          <span className="btn-label">Reset</span>
         </button>
-        <button onClick={handleGeneratePDF} className="btn btn-primary">
-          <CheckCircle size={16} />
-          Generate PDF
+        <button onClick={handleGeneratePDF} className="btn btn-primary" title="Generate PDF">
+          <CheckCircle size={18} />
+          <span className="btn-label">Generate PDF</span>
         </button>
       </ModuleHeader>
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { LPOData, DateRange, ApplicableRate, PdfOptions, GuestInfo } from '../types';
+import { GLOBAL_CURRENCIES } from '../types/currencies';
 import DateManager from './DateManager';
 import { Section, SubSection, Label, Input, Select, TextArea, Checkbox } from './shared/SharedUI';
 import { 
@@ -349,7 +350,7 @@ const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
                  <Select 
                    value={data.currency}
                    onChange={(e) => updateField('currency', e)}
-                   options={['AED', 'USD', 'EUR', 'GBP', 'SAR']}
+                   options={GLOBAL_CURRENCIES}
                  />
               </div>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Download, Upload, RefreshCw, FileText, ArrowLeft } from 'lucide-react';
 import { HotelInvoiceData, INITIAL_HOTEL_INVOICE } from '../../types/generalInvoice';
 import { HotelInvoiceForm } from './HotelInvoiceForm';
@@ -21,6 +21,7 @@ interface Props {
 export default function HotelInvoiceModule({ onNavigateHome }: Props) {
   const [data, setData] = useState<HotelInvoiceData>(INITIAL_HOTEL_INVOICE);
   const { addToast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -131,31 +132,30 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
     <div className="app-shell">
       <div className="module-wrapper">
       <ModuleHeader title="Hotel Invoice" onNavigateHome={onNavigateHome}>
-        <div>
-          <label htmlFor="import-json" className="btn-ghost" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Upload size={16} /> Import
-          </label>
-          <input 
-            id="import-json" 
-            type="file" 
-            accept=".json" 
-            onChange={handleImportJSON} 
-            style={{ display: 'none' }} 
-          />
-        </div>
-        
-        <button className="btn-ghost" onClick={handleExportJSON}>
-          <Download size={16} /> Export
+        <input 
+          id="import-json"
+          type="file" 
+          accept=".json" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          onChange={handleImportJSON} 
+        />
+        <button className="btn btn-ghost" onClick={() => fileInputRef.current?.click()} title="Import JSON">
+          <Upload size={18} />
+          <span className="btn-label">Import</span>
         </button>
-        
+        <button className="btn btn-ghost" onClick={handleExportJSON} title="Export JSON">
+          <Download size={18} />
+          <span className="btn-label">Export</span>
+        </button>
         <div className="header-divider"></div>
-        
-        <button className="btn-danger-ghost" onClick={handleReset}>
-          <RefreshCw size={16} /> Reset
+        <button onClick={handleReset} className="btn btn-danger-ghost" title="Reset Form">
+          <RefreshCw size={18} />
+          <span className="btn-label">Reset</span>
         </button>
-        
-        <button className="btn-primary" onClick={handleGeneratePDF}>
-          <FileText size={16} /> Generate PDF
+        <button onClick={handleGeneratePDF} className="btn btn-primary" title="Generate PDF">
+          <FileText size={18} />
+          <span className="btn-label">Generate PDF</span>
         </button>
       </ModuleHeader>
 

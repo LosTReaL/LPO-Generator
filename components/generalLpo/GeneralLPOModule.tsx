@@ -156,18 +156,22 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
           style={{ display: 'none' }} 
           onChange={handleImport} 
         />
-        <button className="btn-ghost" onClick={() => fileInputRef.current?.click()} title="Import JSON">
-          <Upload size={18} /> Import
+        <button className="btn btn-ghost" onClick={() => fileInputRef.current?.click()} title="Import JSON">
+          <Upload size={18} />
+          <span className="btn-label">Import</span>
         </button>
-        <button className="btn-ghost" onClick={handleExport} title="Export JSON">
-          <Download size={18} /> Export
+        <button className="btn btn-ghost" onClick={handleExport} title="Export JSON">
+          <Download size={18} />
+          <span className="btn-label">Export</span>
         </button>
         <div className="header-divider" />
-        <button className="btn-danger-ghost" onClick={handleReset} title="Reset Form">
-          <RefreshCw size={18} /> Reset
+        <button onClick={handleReset} className="btn btn-danger-ghost" title="Reset Form">
+          <RefreshCw size={18} />
+          <span className="btn-label">Reset</span>
         </button>
-        <button className="btn-primary" onClick={handleGeneratePDF}>
-          <FileCheck size={18} style={{ marginRight: '0.5rem' }} /> Generate PDF
+        <button onClick={handleGeneratePDF} className="btn btn-primary" title="Generate PDF">
+          <FileCheck size={18} />
+          <span className="btn-label">Generate PDF</span>
         </button>
       </ModuleHeader>
       
