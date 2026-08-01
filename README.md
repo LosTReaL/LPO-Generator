@@ -204,4 +204,4 @@ Ordris/
 
 ---
 
-Made with ❤️ using Gemini AI. [Let's connect on LinkedIn!](https://www.linkedin.com/in/mismailyilmaz)
+AI-Orchestrated with ❤️ [Let's connect on LinkedIn!](https://www.linkedin.com/in/mismailyilmaz)

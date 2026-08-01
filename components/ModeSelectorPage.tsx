@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building, FileText, ShoppingCart, Receipt } from 'lucide-react';
+import { Building, FileText, ShoppingCart, Receipt, Linkedin } from 'lucide-react';
 
 interface ModeSelectorPageProps {
   onSelectMode: (mode: string) => void;
@@ -62,8 +62,19 @@ const ModeSelectorPage: React.FC<ModeSelectorPageProps> = ({ onSelectMode }) => 
           ))}
         </div>
 
-        <div className="mode-selector-footer">
+        <div className="mode-selector-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
           <span>AI-Orchestrated with ❤️</span>
+          <a 
+            href="https://www.linkedin.com/in/mismailyilmaz" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            style={{ color: 'inherit', display: 'flex', alignItems: 'center', transition: 'color 0.2s', outline: 'none' }}
+            title="Connect with me on LinkedIn"
+            onMouseOver={(e) => e.currentTarget.style.color = '#0a66c2'}
+            onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}
+          >
+            <Linkedin size={16} />
+          </a>
         </div>
       </div>
     </div>

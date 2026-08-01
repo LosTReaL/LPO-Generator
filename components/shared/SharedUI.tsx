@@ -1,5 +1,5 @@
 import React, { useRef, useLayoutEffect } from 'react';
-import { ChevronDown, Check, ArrowLeft } from 'lucide-react';
+import { ChevronDown, Check, ArrowLeft, Linkedin } from 'lucide-react';
 
 // ============================================================
 // Shared UI Components
@@ -247,8 +247,19 @@ export const ModuleHeader = ({
       <div className="app-header-inner">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600 }}>{title} Generator</h1>
-          <div className="header-credit" style={{ fontSize: '0.75rem', color: 'var(--slate-400)' }}>
-            AI-Orchestrated with ❤️
+          <div className="header-credit" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--slate-400)' }}>
+            <span>AI-Orchestrated with ❤️</span>
+            <a 
+              href="https://www.linkedin.com/in/mismailyilmaz" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              style={{ color: 'inherit', display: 'flex', alignItems: 'center', transition: 'color 0.2s', outline: 'none' }}
+              title="Connect with me on LinkedIn"
+              onMouseOver={(e) => e.currentTarget.style.color = '#0a66c2'}
+              onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}
+            >
+              <Linkedin size={14} />
+            </a>
           </div>
         </div>
         <div className="header-actions">
