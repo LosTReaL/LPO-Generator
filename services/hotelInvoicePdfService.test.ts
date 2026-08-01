@@ -296,7 +296,7 @@ describe('hotelInvoicePdfService', () => {
       ...baseData,
       hotelName: '', // covers line 64 and 291 (fallback to 'Hotel Name' and 'Reception')
       signatureName: '', // covers line 291 (fallback to 'Reception' if hotelName is empty)
-      serviceChargeType: 'fixed', // covers line 162 (fixed instead of percentage)
+      serviceChargeType: 'flat', // covers line 162 (fixed instead of percentage)
       serviceChargeRate: 50,
       hotelAddress: '123 Main St',
     };

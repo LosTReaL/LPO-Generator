@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { expect, test, vi, beforeEach, afterEach } from 'vitest';
+import { expect, test, describe, vi, beforeEach, afterEach } from 'vitest';
 import HotelLPOModule from './HotelLPOModule';
 import { ToastProvider } from './shared/ToastContext';
 import { INITIAL_PDF_OPTIONS } from '../types';

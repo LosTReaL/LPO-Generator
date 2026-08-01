@@ -56,7 +56,7 @@ describe('ErrorBoundary', () => {
     expect(window.location.hash).toBe('');
     expect(window.location.reload).toHaveBeenCalled();
     
-    window.location = originalLocation;
+    window.location = originalLocation as any;
     consoleError.mockRestore();
   });
 });

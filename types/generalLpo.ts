@@ -26,7 +26,7 @@ export interface GeneralLPOData {
     taxId?: string;
     address?: string;
   };
-  items: LineItem[];
+  items?: LineItem[];
   currency?: string;
   discountType?: string;
   discountValue?: number;

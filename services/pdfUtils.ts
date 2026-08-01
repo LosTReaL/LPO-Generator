@@ -219,7 +219,7 @@ export const drawWatermark = (doc: jsPDF, text: string) => {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.saveGraphicsState();
-    doc.setGState(new doc.GState({ opacity: 0.1 }));
+    doc.setGState(new (doc.GState as any)({ opacity: 0.1 }));
     doc.setTextColor(150, 150, 150);
     doc.setFontSize(60);
     doc.setFont("helvetica", "bold");
