@@ -131,7 +131,7 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <label className="btn-ghost" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Upload size={14} /> Upload Logo
-                  <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="sr-only" aria-label="Upload hotel logo" />
                 </label>
                 {data.hotelLogo && (
                   <Checkbox label="Show Logo" checked={data.showLogo} onChange={c => onChange({ showLogo: c })} />

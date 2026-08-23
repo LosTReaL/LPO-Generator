@@ -50,10 +50,13 @@ describe('HotelInvoiceForm', () => {
     // Upload logo
     const file = new File(['dummy content'], 'logo.png', { type: 'image/png' });
     
-    // We can find the file input by type
+    // We can find the file input by type — it must remain keyboard-reachable
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     expect(fileInput).not.toBeNull();
-    
+    expect(fileInput).toHaveClass('sr-only');
+    fileInput.focus();
+    expect(document.activeElement).toBe(fileInput);
+
     // Mock FileReader
     const mockFileReader = {
       readAsDataURL: vi.fn(),

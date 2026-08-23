@@ -482,12 +482,13 @@ const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
                     <label className="logo-upload-btn">
                       <ImageIcon size={16} />
                       <span>Upload</span>
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         accept="image/*"
                         ref={logoInputRef}
                         onChange={handleLogoUpload}
-                        className="hidden"
+                        className="sr-only"
+                        data-testid="logo-upload-input"
                       />
                     </label>
                     {data.pdfOptions.logoDataUrl ? (
@@ -608,22 +609,21 @@ const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
                   { id: 'average', icon: Calculator, label: 'Average Rate', desc: 'Daily Average + Total' },
                   { id: 'breakdown', icon: FileSpreadsheet, label: 'Full Breakdown', desc: 'Detailed Daily Rates' }
                 ].map((mode) => (
-                  <label key={mode.id} className="relative cursor-pointer group h-full">
-                    <input 
-                      type="radio" 
-                      name="rateMode" 
-                      checked={currentRateDisplayMode === mode.id} 
+                  <label key={mode.id} className="cursor-pointer h-full">
+                    <input
+                      type="radio"
+                      name="rateMode"
+                      checked={currentRateDisplayMode === mode.id}
                       onChange={() => setRateDisplayMode(mode.id as any)}
-                      className="hidden"
+                      className="sr-only fin-mode-radio"
+                      aria-label={`${mode.label} — ${mode.desc}`}
                     />
                     <div className={`fin-mode-card ${currentRateDisplayMode === mode.id ? 'fin-mode-card--active' : ''}`}>
                        <div className={`fin-mode-icon ${currentRateDisplayMode === mode.id ? 'fin-mode-icon--active' : ''}`}>
-                         <mode.icon size={24} strokeWidth={1.5} />
+                         <mode.icon size={22} strokeWidth={1.75} />
                        </div>
-                       <div>
-                         <span className={`fin-mode-label ${currentRateDisplayMode === mode.id ? 'fin-mode-label--active' : ''}`}>{mode.label}</span>
-                         <span className="fin-mode-desc">{mode.desc}</span>
-                       </div>
+                       <span className={`fin-mode-label ${currentRateDisplayMode === mode.id ? 'fin-mode-label--active' : ''}`}>{mode.label}</span>
+                       <span className="fin-mode-desc">{mode.desc}</span>
                     </div>
                   </label>
                 ))}

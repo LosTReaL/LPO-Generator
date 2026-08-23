@@ -255,6 +255,24 @@ test('LPOForm renders and interacts comprehensively', async () => {
   await user.click(cb2);
 });
 
+test('logo upload is keyboard-reachable (regression: was display:none, mouse-only)', async () => {
+  const onChange = vi.fn();
+  render(
+    <ToastProvider>
+      <LPOForm data={{ ...mockData, pdfOptions: { ...mockData.pdfOptions, showLogo: true } }} onChange={onChange} />
+    </ToastProvider>
+  );
+
+  const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+  expect(fileInput).toHaveClass('sr-only');
+  expect(fileInput).not.toHaveClass('hidden');
+
+  // sr-only keeps the element focusable — Tab users can reach it and press
+  // Enter to open the file picker; display:none made that impossible.
+  fileInput.focus();
+  expect(document.activeElement).toBe(fileInput);
+});
+
 test('invalid rate amounts give explicit feedback instead of failing silently (regression)', async () => {
   const user = userEvent.setup();
   const { container } = render(
