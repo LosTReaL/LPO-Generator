@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateLPOPDF } from './pdfService';
-import { LPOData, INITIAL_LPO_DATA, INITIAL_PDF_OPTIONS } from '../types';
+import { LPOData, INITIAL_LPO_DATA } from '../types';
 
 const mockDoc = {
   internal: { pageSize: { width: 210, height: 297 } },

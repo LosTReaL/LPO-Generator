@@ -12,7 +12,7 @@ vi.mock('jspdf', () => {
     setFont: vi.fn(),
     setTextColor: vi.fn(),
     text: vi.fn(),
-    splitTextToSize: vi.fn().mockImplementation((text, width) => {
+    splitTextToSize: vi.fn().mockImplementation((text) => {
       if (typeof text === 'string') return [text];
       return text;
     }),

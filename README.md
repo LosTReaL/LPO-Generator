@@ -18,7 +18,7 @@
 - 📑 **Instant PDF Export**: High-resolution, vector-based PDF generation via `jsPDF` and `jspdf-autotable`.
 - 💾 **Automatic Local Persistence**: Automatic state saving to browser `localStorage` with configurable TTL (7 days).
 - 📤 **JSON Backup & Import**: Complete data import and export for offline backups and multi-device portability.
-- 🌍 **Multi-Currency Support**: Supports major global currencies (*USD, EUR, GBP, AED, SAR, INR, CAD, AUD, SGD, CHF, JPY, CNY*).
+- 🌍 **Multi-Currency Support**: Supports 50 major global currencies (*USD, EUR, GBP, AED, SAR, INR, JPY, CNY, and more*).
 - 🎨 **Custom Vanilla CSS Design System**: Production-grade styling using CSS Custom Properties (`:root` tokens) — responsive, fast, and completely free of heavy framework overhead.
 - 🔒 **Privacy-First & Offline Ready**: Operates 100% client-side without external database or server tracking.
 
@@ -27,8 +27,8 @@
 ## 🛠️ Installation & Local Setup
 
 ### Prerequisites
-- **Node.js**: `v18.0.0` or higher
-- **npm**: `v9.0.0` or higher
+- **Node.js**: `v20.x` (CI runs Node 20)
+- **npm**: `v10` or higher
 
 ### Setup Instructions
 

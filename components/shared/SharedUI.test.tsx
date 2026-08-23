@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Building } from 'lucide-react';
@@ -97,10 +96,21 @@ describe('SharedUI Components', () => {
   it('renders StatusBadge with expected status class', () => {
     const { rerender } = render(<StatusBadge status="Approved" />);
     expect(screen.getByText('Approved')).toHaveClass('status-badge--approved');
-    
+
     // Default fallback
     rerender(<StatusBadge status="Unknown" />);
     expect(screen.getByText('Unknown')).toHaveClass('status-badge--draft');
+  });
+
+  it('maps General-LPO workflow statuses to styled badges (regression)', () => {
+    const { rerender } = render(<StatusBadge status="Sent to Supplier" />);
+    expect(screen.getByText('Sent to Supplier')).toHaveClass('status-badge--sent');
+
+    rerender(<StatusBadge status="Partially Received" />);
+    expect(screen.getByText('Partially Received')).toHaveClass('status-badge--partial');
+
+    rerender(<StatusBadge status="Completed" />);
+    expect(screen.getByText('Completed')).toHaveClass('status-badge--delivered');
   });
 
   it('renders ModuleHeader and handles navigation', () => {

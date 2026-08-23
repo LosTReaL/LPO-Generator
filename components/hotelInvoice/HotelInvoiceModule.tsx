@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Upload, RefreshCw, FileText, ArrowLeft } from 'lucide-react';
-import { HotelInvoiceData, INITIAL_HOTEL_INVOICE } from '../../types/generalInvoice';
+import { Download, Upload, RefreshCw, FileText } from 'lucide-react';
+import { HotelInvoiceData, INITIAL_HOTEL_INVOICE } from '../../types/hotelInvoice';
 import { HotelInvoiceForm } from './HotelInvoiceForm';
 import { generateHotelInvoicePDF } from '../../services/hotelInvoicePdfService';
+import { normalizeHotelInvoiceData, parseImportPayload } from '../../services/dataUtils';
 import { ModuleHeader } from '../shared/SharedUI';
 import { useToast } from '../shared/ToastContext';
 
@@ -20,6 +21,7 @@ interface Props {
 
 export default function HotelInvoiceModule({ onNavigateHome }: Props) {
   const [data, setData] = useState<HotelInvoiceData>(INITIAL_HOTEL_INVOICE);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -31,7 +33,7 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
         const parsed: StorageData = JSON.parse(saved);
         const ageInDays = (Date.now() - parsed.timestamp) / (1000 * 60 * 60 * 24);
         if (ageInDays < EXPIRY_DAYS) {
-          setData(parsed.data);
+          setData(normalizeHotelInvoiceData(parsed.data ?? {}));
         } else {
           localStorage.removeItem(STORAGE_KEY);
         }
@@ -43,12 +45,17 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
 
   // Save to localStorage on change
   useEffect(() => {
-    const storageData: StorageData = {
-      data,
-      timestamp: Date.now()
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
-  }, [data]);
+    try {
+      const storageData: StorageData = {
+        data,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
+    } catch (e) {
+      console.error('Failed to save hotel invoice data:', e);
+      addToast('Changes could not be saved locally (storage full or unavailable).', 'warning');
+    }
+  }, [data, addToast]);
 
   const handleUpdate = (updates: Partial<HotelInvoiceData>) => {
     setData(prev => ({ ...prev, ...updates }));
@@ -81,30 +88,25 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      try {
-        const result = event.target?.result as string;
-        const importedData = JSON.parse(result);
-        
-        // Basic validation
-        if (typeof importedData !== 'object' || importedData === null) {
-          throw new Error("Invalid format");
-        }
-        
-        setData({ ...INITIAL_HOTEL_INVOICE, ...importedData });
-        
-        
-        // Reset file input
-        if (e.target) e.target.value = '';
+      const result = parseImportPayload(String(event.target?.result ?? ''));
+      if (!result.ok || !result.data) {
+        addToast(result.error ?? 'Invalid JSON file. Could not import data.', 'error');
+        console.error(result.error ?? 'Invalid import payload');
+      } else {
+        setData(normalizeHotelInvoiceData(result.data));
         addToast('Data imported successfully.', 'success');
-      } catch (error) {
-        addToast('Invalid JSON file. Could not import data.', 'error');
-        console.error(error);
       }
+      if (e.target) e.target.value = '';
+    };
+    reader.onerror = () => {
+      addToast('Invalid JSON file. Could not import data.', 'error');
+      if (e.target) e.target.value = '';
     };
     reader.readAsText(file);
   };
 
   const handleGeneratePDF = () => {
+    if (isGenerating) return;
     // Validation
     if (!data.hotelName.trim()) {
       addToast("Hotel Name is required.", "error");
@@ -119,12 +121,15 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
       return;
     }
 
+    setIsGenerating(true);
     try {
       generateHotelInvoicePDF(data);
       addToast("PDF generated successfully.", "success");
     } catch (e) {
       addToast("An error occurred while generating PDF.", "error");
       console.error(e);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -153,9 +158,9 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
           <RefreshCw size={18} />
           <span className="btn-label">Reset</span>
         </button>
-        <button onClick={handleGeneratePDF} className="btn btn-primary" title="Generate PDF">
+        <button onClick={handleGeneratePDF} className="btn btn-primary" title="Generate PDF" disabled={isGenerating}>
           <FileText size={18} />
-          <span className="btn-label">Generate PDF</span>
+          <span className="btn-label">{isGenerating ? 'Generating…' : 'Generate PDF'}</span>
         </button>
       </ModuleHeader>
 
@@ -167,7 +172,7 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
         </div>
       </main>
 
-      <button className="fab" onClick={handleGeneratePDF} title="Generate PDF">
+      <button className="fab" onClick={handleGeneratePDF} title="Generate PDF" aria-label="Generate PDF" disabled={isGenerating}>
         <FileText size={24} />
       </button>
       </div>

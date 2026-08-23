@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateHotelInvoicePDF } from './hotelInvoicePdfService';
-import { HotelInvoiceData } from '../types/generalInvoice';
+import { HotelInvoiceData } from '../types/hotelInvoice';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -221,7 +221,7 @@ describe('hotelInvoicePdfService', () => {
 
   it('triggers addPage for totals block, payments table, and notes if yCursor is too large', () => {
     // Override the autoTable mock for this test to set a very large finalY
-    (autoTable as any).mockImplementation((doc: any, options: any) => {
+    (autoTable as any).mockImplementation((doc: any) => {
       doc.lastAutoTable = { finalY: 280 }; // Force a large Y to trigger addPage
     });
     
@@ -238,7 +238,7 @@ describe('hotelInvoicePdfService', () => {
   });
 
   it('triggers addPage before payments table', () => {
-    (autoTable as any).mockImplementationOnce((doc: any, options: any) => {
+    (autoTable as any).mockImplementationOnce((doc: any) => {
       doc.lastAutoTable = { finalY: 220 }; 
     });
     
@@ -253,7 +253,7 @@ describe('hotelInvoicePdfService', () => {
   });
 
   it('triggers addPage before notes', () => {
-    (autoTable as any).mockImplementationOnce((doc: any, options: any) => {
+    (autoTable as any).mockImplementationOnce((doc: any) => {
       doc.lastAutoTable = { finalY: 225 }; 
     });
     
@@ -271,7 +271,7 @@ describe('hotelInvoicePdfService', () => {
   });
 
   it('triggers addPage before signatures', () => {
-    (autoTable as any).mockImplementationOnce((doc: any, options: any) => {
+    (autoTable as any).mockImplementationOnce((doc: any) => {
       doc.lastAutoTable = { finalY: 225 }; 
     });
     

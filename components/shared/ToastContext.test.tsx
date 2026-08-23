@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ToastProvider, useToast } from './ToastContext';
@@ -69,12 +68,41 @@ describe('ToastContext', () => {
     );
     fireEvent.click(screen.getByText('Add Success'));
     expect(screen.getByText('Success MSG')).toBeInTheDocument();
-    
+
     act(() => {
       vi.advanceTimersByTime(4000);
     });
-    
+
     expect(screen.queryByText('Success MSG')).not.toBeInTheDocument();
     vi.useRealTimers();
+  });
+
+  it('clears pending auto-dismiss timers on unmount (no stray updates)', () => {
+    vi.useFakeTimers();
+    const { unmount } = render(
+      <ToastProvider>
+        <TestComponent />
+      </ToastProvider>
+    );
+    fireEvent.click(screen.getByText('Add Success'));
+    expect(screen.getByText('Success MSG')).toBeInTheDocument();
+
+    unmount();
+    expect(() =>
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      })
+    ).not.toThrow();
+    vi.useRealTimers();
+  });
+
+  it('exposes a polite live region for screen readers', () => {
+    const { container } = render(
+      <ToastProvider>
+        <TestComponent />
+      </ToastProvider>
+    );
+    const region = container.querySelector('[role="status"][aria-live="polite"]');
+    expect(region).not.toBeNull();
   });
 });

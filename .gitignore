@@ -17,6 +17,7 @@ dist
 dist-ssr
 build
 coverage
+coverage.txt
 *.tsbuildinfo
 
 # Env Files
@@ -44,3 +45,8 @@ Thumbs.db
 # Caches
 .eslintcache
 .vite
+
+# Playwright
+test-results
+playwright-report
+blob-report

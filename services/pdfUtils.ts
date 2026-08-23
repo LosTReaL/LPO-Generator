@@ -11,12 +11,15 @@ const units = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight
 const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
 export const numToWords = (n: number): string => {
+  if (!Number.isFinite(n)) return '';
+  if (n < 0) return 'Minus ' + numToWords(-n);
   if (n === 0) return '';
   if (n < 20) return units[n];
   if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? '-' + units[n % 10] : '');
   if (n < 1000) return units[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' ' + numToWords(n % 100) : '');
   if (n < 1000000) return numToWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + numToWords(n % 1000) : '');
   if (n < 1000000000) return numToWords(Math.floor(n / 1000000)) + ' Million' + (n % 1000000 !== 0 ? ' ' + numToWords(n % 1000000) : '');
+  if (n < 1000000000000) return numToWords(Math.floor(n / 1000000000)) + ' Billion' + (n % 1000000000 !== 0 ? ' ' + numToWords(n % 1000000000) : '');
   return '';
 };
 
@@ -68,7 +71,23 @@ export const getAmountInWords = (amount: number, currency: string): string => {
 
 export const generateDocNumber = (prefix: string = 'PO'): string => {
   const dateStr = format(new Date(), 'yyyyMMdd');
-  const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+  // Crypto-backed suffix with Math.random fallback: business documents
+  // must stay collision-resistant even when generated in bursts.
+  let randomStr = '';
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const bytes = new Uint8Array(6);
+      crypto.getRandomValues(bytes);
+      randomStr = Array.from(bytes, (b) => (b % 36).toString(36)).join('').toUpperCase();
+    }
+  } catch {
+    /* fall through */
+  }
+  if (!randomStr || randomStr.length < 6) {
+    randomStr = (
+      Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4)
+    ).slice(-6).toUpperCase();
+  }
   return `${prefix}-${dateStr}-${randomStr}`;
 };
 
@@ -223,10 +242,7 @@ export const drawWatermark = (doc: jsPDF, text: string) => {
     doc.setTextColor(150, 150, 150);
     doc.setFontSize(60);
     doc.setFont("helvetica", "bold");
-    
-    // Calculate angle for diagonal text
-    const angle = Math.atan2(pageHeight, pageWidth) * (180 / Math.PI);
-    
+
     // Write text diagonally in the center of the page
     doc.text(text.toUpperCase(), pageWidth / 2, pageHeight / 2, {
       align: 'center',

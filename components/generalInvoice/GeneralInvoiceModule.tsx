@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, RotateCcw, Upload, FileText, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Download, RotateCcw, Upload, CheckCircle } from 'lucide-react';
 import { GeneralInvoiceForm } from './GeneralInvoiceForm';
 import { generateGeneralInvoicePDF } from '../../services/generalInvoicePdfService';
-import { GeneralInvoiceData, INITIAL_GENERAL_INVOICE } from '../../types/hotelInvoice';
+import { GeneralInvoiceData, INITIAL_GENERAL_INVOICE } from '../../types/generalInvoice';
+import { normalizeGeneralInvoiceData, parseImportPayload } from '../../services/dataUtils';
 import { ModuleHeader } from '../shared/SharedUI';
 import { useToast } from '../shared/ToastContext';
 
@@ -16,6 +17,7 @@ interface Props {
 export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [data, setData] = useState<GeneralInvoiceData>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -24,7 +26,7 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
         if (parsed.timestamp) {
           const age = Date.now() - parsed.timestamp;
           if (age < EXPIRY_DAYS * 24 * 60 * 60 * 1000) {
-            return parsed.data as GeneralInvoiceData;
+            return normalizeGeneralInvoiceData(parsed.data ?? {});
           }
         }
       }
@@ -35,11 +37,16 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      timestamp: Date.now(),
-      data
-    }));
-  }, [data]);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        timestamp: Date.now(),
+        data
+      }));
+    } catch (e) {
+      console.error('Failed to save general invoice data to storage:', e);
+      addToast('Changes could not be saved locally (storage full or unavailable).', 'warning');
+    }
+  }, [data, addToast]);
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset the invoice? All unsaved data will be lost.')) {
@@ -65,19 +72,21 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      try {
-        const importedData = JSON.parse(event.target?.result as string);
-        setData({ ...INITIAL_GENERAL_INVOICE, ...importedData });
+      const result = parseImportPayload(String(event.target?.result ?? ''));
+      if (!result.ok || !result.data) {
+        addToast(result.error ?? 'Failed to parse JSON file.', 'error');
+      } else {
+        setData(normalizeGeneralInvoiceData(result.data));
         addToast('Data imported successfully.', 'success');
-      } catch (err) {
-        addToast('Failed to parse JSON file.', 'error');
       }
     };
+    reader.onerror = () => addToast('Failed to parse JSON file.', 'error');
     reader.readAsText(file);
     e.target.value = '';
   };
 
   const handleGeneratePDF = () => {
+    if (isGenerating) return;
     if (!data.companyName) {
       addToast('Company Name is required.', 'error');
       return;
@@ -91,12 +100,15 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
       return;
     }
 
+    setIsGenerating(true);
     try {
       generateGeneralInvoicePDF(data);
       addToast('PDF generated successfully.', 'success');
     } catch (e) {
       addToast('An error occurred while generating PDF.', 'error');
       console.error(e);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -124,9 +136,9 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
           <RotateCcw size={18} />
           <span className="btn-label">Reset</span>
         </button>
-        <button onClick={handleGeneratePDF} className="btn btn-primary" title="Generate PDF">
+        <button onClick={handleGeneratePDF} className="btn btn-primary" title="Generate PDF" disabled={isGenerating}>
           <CheckCircle size={18} />
-          <span className="btn-label">Generate PDF</span>
+          <span className="btn-label">{isGenerating ? 'Generating…' : 'Generate PDF'}</span>
         </button>
       </ModuleHeader>
 
@@ -134,7 +146,7 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
         <GeneralInvoiceForm data={data} setData={setData} />
       </main>
       
-      <button className="fab d-md-none" onClick={handleGeneratePDF} title="Generate PDF">
+      <button className="fab" onClick={handleGeneratePDF} title="Generate PDF" aria-label="Generate PDF" disabled={isGenerating}>
         <CheckCircle size={24} />
       </button>
       </div>

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateGeneralInvoicePDF } from './generalInvoicePdfService';
-import { GeneralInvoiceData } from '../types/hotelInvoice';
+import { GeneralInvoiceData } from '../types/generalInvoice';
 
 vi.mock('jspdf', () => {
   const jsPDF = vi.fn().mockImplementation(() => ({

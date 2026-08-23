@@ -65,7 +65,8 @@ export const Input = ({
   max,
   disabled
 }: {
-  value: string | number;
+  /** Tolerates undefined so optional document fields bind directly. */
+  value?: string | number;
   onChange: (val: string | number) => void;
   placeholder?: string;
   type?: string;
@@ -83,7 +84,7 @@ export const Input = ({
     )}
     <input
       type={type}
-      value={value}
+      value={value ?? ''}
       min={min}
       max={max}
       disabled={disabled}
@@ -135,7 +136,8 @@ export const TextArea = ({
   rows = 3,
   placeholder
 }: {
-  value: string;
+  /** Tolerates undefined so optional document fields bind directly. */
+  value?: string;
   onChange: (val: string) => void;
   rows?: number;
   placeholder?: string;
@@ -153,7 +155,7 @@ export const TextArea = ({
     <textarea
       ref={textareaRef}
       rows={rows}
-      value={value}
+      value={value ?? ''}
       onChange={(e) => onChange(e.target.value)}
       className="textarea-field"
       placeholder={placeholder}
@@ -169,7 +171,8 @@ export const Checkbox = ({
   children
 }: {
   label: string;
-  checked: boolean;
+  /** Tolerates undefined (treated as unchecked) for optional flags. */
+  checked?: boolean;
   onChange: (checked: boolean) => void;
   children?: React.ReactNode;
 }) => (
@@ -178,7 +181,7 @@ export const Checkbox = ({
       <div className="checkbox-visual">
         <input
           type="checkbox"
-          checked={checked}
+          checked={!!checked}
           onChange={(e) => onChange(e.target.checked)}
           className="sr-only"
         />
@@ -209,9 +212,12 @@ export const StatusBadge = ({ status }: { status: string }) => {
     'Pending Approval': 'status-badge--pending',
     'Approved': 'status-badge--approved',
     'Sent': 'status-badge--sent',
+    'Sent to Supplier': 'status-badge--sent',
     'Paid': 'status-badge--paid',
     'Partially Paid': 'status-badge--partial',
     'Partially Delivered': 'status-badge--partial',
+    'Partially Received': 'status-badge--partial',
+    'Completed': 'status-badge--delivered',
     'Overdue': 'status-badge--overdue',
     'Cancelled': 'status-badge--cancelled',
     'Ordered': 'status-badge--ordered',

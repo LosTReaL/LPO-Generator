@@ -11,7 +11,7 @@ import {
   HotelInvoiceData, InvoiceLineItem, PaymentRecord, 
   CHARGE_CATEGORIES, PAYMENT_METHODS, HOTEL_INVOICE_CURRENCIES, 
   HotelGuestInfo 
-} from '../../types/generalInvoice';
+} from '../../types/hotelInvoice';
 
 interface Props {
   data: HotelInvoiceData;
@@ -225,6 +225,13 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
                 </tr>
               </thead>
               <tbody>
+                {data.lineItems.length === 0 && (
+                  <tr>
+                    <td colSpan={7}>
+                      <div className="items-empty">No charges recorded for this invoice yet.</div>
+                    </td>
+                  </tr>
+                )}
                 {data.lineItems.map(item => (
                   <tr key={item.id}>
                     <td>
@@ -275,7 +282,7 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
                       {item.amount.toFixed(2)}
                     </td>
                     <td>
-                      <button className="btn-icon" onClick={() => removeLineItem(item.id)}>
+                      <button className="btn-icon" onClick={() => removePayment(item.id)} aria-label="Remove payment">
                         <Trash2 size={14} className="text-danger" />
                       </button>
                     </td>
@@ -305,6 +312,13 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
                 </tr>
               </thead>
               <tbody>
+                {data.payments.length === 0 && (
+                  <tr>
+                    <td colSpan={5}>
+                      <div className="items-empty">No payments recorded yet.</div>
+                    </td>
+                  </tr>
+                )}
                 {data.payments.map(item => (
                   <tr key={item.id}>
                     <td>
@@ -343,7 +357,7 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
                       />
                     </td>
                     <td>
-                      <button className="btn-icon" onClick={() => removePayment(item.id)}>
+                      <button className="btn-icon" onClick={() => removeLineItem(item.id)} aria-label="Remove charge">
                         <Trash2 size={14} className="text-danger" />
                       </button>
                     </td>

@@ -1,21 +1,18 @@
 import { GLOBAL_CURRENCIES } from './currencies';
 
-export interface HotelGuestInfo {
-  name: string;
-  loyaltyNumber?: string;
-}
+export type GeneralInvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Cancelled' | 'Partially Paid';
 
-export interface InvoiceLineItem {
+export interface InvoiceItem {
   id: string;
-  category: string;
   description: string;
   quantity: number;
-  rate: number;
-  amount: number;
-  date: string;
+  unitPrice: number;
+  taxRate: number;
+  discount: number;
+  total: number;
 }
 
-export interface PaymentRecord {
+export interface GenPaymentRecord {
   id: string;
   method: string;
   amount: number;
@@ -23,65 +20,73 @@ export interface PaymentRecord {
   reference: string;
 }
 
-export interface HotelInvoiceData {
-  hotelName: string;
-  hotelLogo?: string;
-  showLogo?: boolean;
-  hotelAddress?: string;
-  hotelPhone?: string;
-  hotelEmail?: string;
-  primaryGuest: HotelGuestInfo;
-  guestPhone?: string;
-  guestEmail?: string;
-  companyName?: string;
-  checkInDate?: string;
-  checkOutDate?: string;
-  folioNumber?: string;
-  roomNumber?: string;
-  roomType?: string;
-  lineItems: InvoiceLineItem[];
-  payments: PaymentRecord[];
-  serviceChargeType: 'percentage' | 'flat';
-  serviceChargeRate: number;
-  serviceChargeLabel: string;
-  taxType: 'percentage' | 'flat';
-  taxRate: number;
-  taxLabel: string;
-  discountType: 'percentage' | 'flat';
-  discountValue: number;
-  discountLabel: string;
-  status: string;
+export interface CreditNote {
+  id: string;
+  amount: number;
+  reason: string;
+  date: string;
+}
+
+export interface GeneralInvoiceData {
+  companyName: string;
+  companyTaxId?: string;
+  companyAddress?: string;
+  companyEmail?: string;
+  companyPhone?: string;
+  bankDetails?: string;
+  customer: {
+    name: string;
+    taxId?: string;
+    address?: string;
+    email?: string;
+    phone?: string;
+  };
+  items: InvoiceItem[];
+  payments: GenPaymentRecord[];
+  creditNotes: CreditNote[];
+  recurring: {
+    enabled: boolean;
+    frequency?: string;
+    nextDate?: string;
+  };
+  manualInvoiceNumber: boolean;
+  invoiceNumber: string;
   invoiceDate?: string;
   dueDate?: string;
-  currency: string;
-  invoiceNumber: string;
-  manualInvoiceNumber: boolean;
-  notes?: string;
+  status: GeneralInvoiceStatus;
   showSignature?: boolean;
   signatureName?: string;
+  notes?: string;
+  termsAndConditions?: string;
+  currency: string;
+  shippingCharges: number;
+  usePerItemTax: boolean;
+  globalTaxType: 'percentage' | 'flat';
+  globalTaxRate: number;
+  globalTaxLabel: string;
+  discountType: 'percentage' | 'flat';
+  discountValue: number;
   watermarkText?: string;
 }
 
-export const INITIAL_HOTEL_INVOICE: HotelInvoiceData = {
-  hotelName: '',
-  primaryGuest: { name: '' },
-  lineItems: [],
+export const INITIAL_GENERAL_INVOICE: GeneralInvoiceData = {
+  companyName: '',
+  customer: { name: '' },
+  items: [],
   payments: [],
-  serviceChargeType: 'percentage',
-  serviceChargeRate: 0,
-  serviceChargeLabel: 'Service Charge',
-  taxType: 'percentage',
-  taxRate: 0,
-  taxLabel: 'Tax',
-  discountType: 'flat',
-  discountValue: 0,
-  discountLabel: 'Discount',
+  creditNotes: [],
+  recurring: { enabled: false },
+  manualInvoiceNumber: false,
+  invoiceNumber: '',
   status: 'Draft',
   currency: 'USD',
-  invoiceNumber: '',
-  manualInvoiceNumber: false
+  shippingCharges: 0,
+  usePerItemTax: false,
+  globalTaxType: 'percentage',
+  globalTaxRate: 0,
+  globalTaxLabel: 'Tax',
+  discountType: 'flat',
+  discountValue: 0
 };
 
-export const CHARGE_CATEGORIES = ['Room', 'Food & Beverage', 'Spa', 'Laundry', 'Mini Bar', 'Other'];
-export const PAYMENT_METHODS = ['Cash', 'Credit Card', 'Bank Transfer', 'Other'];
-export const HOTEL_INVOICE_CURRENCIES = GLOBAL_CURRENCIES;
+export const GEN_INVOICE_CURRENCIES = GLOBAL_CURRENCIES;

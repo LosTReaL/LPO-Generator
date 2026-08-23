@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import HotelInvoiceModule from './HotelInvoiceModule';
-import { INITIAL_HOTEL_INVOICE } from '../../types/generalInvoice';
+import { INITIAL_HOTEL_INVOICE } from '../../types/hotelInvoice';
 import { ToastProvider } from '../shared/ToastContext';
 import * as pdfService from '../../services/hotelInvoicePdfService';
 
@@ -290,7 +290,7 @@ describe('HotelInvoiceModule', () => {
     });
 
     renderModule();
-    
+
     const hotelNameInput = screen.getByPlaceholderText(/e.g. The Grand Continental/i);
     fireEvent.change(hotelNameInput, { target: { value: 'Test Hotel' } });
 
@@ -305,5 +305,43 @@ describe('HotelInvoiceModule', () => {
 
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
+  });
+
+  it('shows a warning toast when localStorage quota is exceeded (regression)', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    renderModule();
+
+    const hotelNameInput = screen.getByPlaceholderText(/e.g. The Grand Continental/i);
+    fireEvent.change(hotelNameInput, { target: { value: 'Unsaved Hotel' } });
+
+    await waitFor(() => {
+      // Mount + change both attempt saves while storage is broken
+      expect(screen.getAllByText(/Changes could not be saved locally/i).length).toBeGreaterThan(0);
+    });
+
+    // The app must remain usable after storage failures
+    expect(screen.getByText('Hotel Information')).toBeInTheDocument();
+
+    setItemSpy.mockRestore();
+    consoleSpy.mockRestore();
+  });
+
+  it('repairs corrupt persisted data instead of crashing on mount', () => {
+    localStorage.setItem(
+      'ordris_hotel_invoice_v1',
+      JSON.stringify({
+        timestamp: Date.now(),
+        data: { hotelName: 'Broken Hotel', lineItems: 'not-an-array', payments: [{ amount: 'x' }] },
+      })
+    );
+
+    renderModule();
+    expect(screen.getByDisplayValue('Broken Hotel')).toBeInTheDocument();
+    // lineItems coerced to [] -> empty state visible, no crash
+    expect(screen.getByText(/No charges recorded/i)).toBeInTheDocument();
   });
 });

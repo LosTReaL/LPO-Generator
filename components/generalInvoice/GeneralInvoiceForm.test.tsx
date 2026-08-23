@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { expect, test, describe, vi } from 'vitest';
+import { expect, test, describe } from 'vitest';
 import { GeneralInvoiceForm } from './GeneralInvoiceForm';
-import { INITIAL_GENERAL_INVOICE, GeneralInvoiceData } from '../../types/hotelInvoice';
+import { INITIAL_GENERAL_INVOICE, GeneralInvoiceData } from '../../types/generalInvoice';
 
 const Wrapper = ({ initial = {} }: { initial?: Partial<GeneralInvoiceData> }) => {
   const [data, setData] = useState<GeneralInvoiceData>({ ...INITIAL_GENERAL_INVOICE, ...initial });
@@ -102,8 +102,6 @@ describe('GeneralInvoiceForm', () => {
     // The payment method select should be there
     const methodSelect = methods[0]; 
     fireEvent.change(methodSelect, { target: { value: 'Cash' } });
-
-    const dateInputs = screen.getAllByRole('textbox').filter(el => el.getAttribute('type') === 'date' || el.className.includes('input-field'));
     const paymentCard = screen.getByText('Payment 1').closest('.item-card');
     const paymentDate = paymentCard?.querySelector('input[type="date"], input.input-field') as HTMLElement;
     if(paymentDate) {
@@ -133,8 +131,6 @@ describe('GeneralInvoiceForm', () => {
 
     const amountInputs = screen.getAllByRole('spinbutton');
     fireEvent.change(amountInputs[amountInputs.length - 1], { target: { value: '20' } });
-
-    const dateInputs = screen.getAllByRole('textbox').filter(el => el.getAttribute('type') === 'date' || el.className.includes('input-field'));
     const creditNoteCard = screen.getByText('Credit Note 1').closest('.item-card');
     const creditNoteDate = creditNoteCard?.querySelector('input[type="date"], input.input-field') as HTMLElement;
     if(creditNoteDate) {
@@ -292,7 +288,6 @@ describe('GeneralInvoiceForm', () => {
     
     expect(screen.getAllByText(/110\.00 USD/)[0]).toBeInTheDocument();
 
-    const taxInputs = screen.getAllByRole('spinbutton');
     // find tax rate input
     // The structure: item desc, item qty, item unit price, item tax, item discount
     // We can just add another item in test to trigger updateItem logic

@@ -285,19 +285,38 @@ describe('HotelLPOModule', () => {
 
   test('handles Invalid Import Data', async () => {
     renderWithToast(<HotelLPOModule onNavigateHome={vi.fn()} />);
-    
+
     let fileInput: HTMLInputElement;
     await waitFor(() => {
       fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       expect(fileInput).toBeInTheDocument();
     });
-    
+
     const file = new File(['invalid json'], 'data.json', { type: 'application/json' });
     fireEvent.change(fileInput!, { target: { files: [file] } });
-    
+
     await waitFor(() => {
-      const errorText = screen.getByText(/Invalid data file format\.|Failed to read file\./i);
+      // Standardized error message shared by all modules (services/dataUtils)
+      const errorText = screen.getByText('Invalid JSON file.');
       expect(errorText).toBeInTheDocument();
+    });
+  });
+
+  test('rejects oversized import files', async () => {
+    renderWithToast(<HotelLPOModule onNavigateHome={vi.fn()} />);
+
+    let fileInput: HTMLInputElement;
+    await waitFor(() => {
+      fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      expect(fileInput).toBeInTheDocument();
+    });
+
+    const bigFile = new File(['"x"'], 'big.json', { type: 'application/json' });
+    Object.defineProperty(bigFile, 'size', { value: 3 * 1024 * 1024 });
+    fireEvent.change(fileInput!, { target: { files: [bigFile] } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/File is too large to import/i)).toBeInTheDocument();
     });
   });
 });

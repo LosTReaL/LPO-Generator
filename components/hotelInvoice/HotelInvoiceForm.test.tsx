@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { HotelInvoiceForm } from './HotelInvoiceForm';
-import { INITIAL_HOTEL_INVOICE, HotelInvoiceData } from '../../types/generalInvoice';
+import { INITIAL_HOTEL_INVOICE, HotelInvoiceData } from '../../types/hotelInvoice';
 
 describe('HotelInvoiceForm', () => {
   const mockOnChange = vi.fn();
@@ -45,7 +45,7 @@ describe('HotelInvoiceForm', () => {
   });
 
   it('handles logo upload correctly', async () => {
-    const { container } = render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
+    render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
     
     // Upload logo
     const file = new File(['dummy content'], 'logo.png', { type: 'image/png' });
@@ -398,7 +398,7 @@ describe('HotelInvoiceForm', () => {
   });
 
   it('changes serviceChargeLabel, taxLabel, discountLabel', () => {
-    const { container } = render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
+    render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
     
     const labels = Array.from(screen.getAllByText('Label'));
     // The next sibling of the label span is the div.input-group, inside which there is the input

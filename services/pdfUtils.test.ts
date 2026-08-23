@@ -67,8 +67,15 @@ describe('pdfUtils', () => {
       expect(numToWords(1250000)).toBe('One Million Two Hundred Fifty Thousand');
     });
 
-    it('returns empty for >= 1000000000', () => {
-      expect(numToWords(1000000000)).toBe('');
+    it('converts billions correctly (regression: used to return empty string)', () => {
+      expect(numToWords(1000000000)).toBe('One Billion');
+      expect(numToWords(1500000000)).toBe('One Billion Five Hundred Million');
+    });
+
+    it('handles negative and non-finite inputs', () => {
+      expect(numToWords(-42)).toBe('Minus Forty-Two');
+      expect(numToWords(Infinity)).toBe('');
+      expect(numToWords(NaN)).toBe('');
     });
   });
 
@@ -100,12 +107,18 @@ describe('pdfUtils', () => {
   describe('generateDocNumber', () => {
     it('generates a formatted document number with default prefix', () => {
       const docNum = generateDocNumber();
-      expect(docNum).toMatch(/^PO-\d{8}-[A-Z0-9]{4}$/);
+      expect(docNum).toMatch(/^PO-\d{8}-[A-Z0-9]{6}$/);
     });
 
     it('generates a formatted document number with custom prefix', () => {
       const docNum = generateDocNumber('INV');
-      expect(docNum).toMatch(/^INV-\d{8}-[A-Z0-9]{4}$/);
+      expect(docNum).toMatch(/^INV-\d{8}-[A-Z0-9]{6}$/);
+    });
+
+    it('is collision-resistant across bursts (regression: weak Math.random suffix)', () => {
+      const numbers = new Set(Array.from({ length: 2000 }, () => generateDocNumber('X')));
+      // 2000 draws from 36^4=1.68M space must not collide when crypto-backed
+      expect(numbers.size).toBe(2000);
     });
   });
 

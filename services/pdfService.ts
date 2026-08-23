@@ -4,7 +4,6 @@ import { format, eachDayOfInterval, startOfDay, subDays } from 'date-fns';
 import { LPOData } from '../types';
 
 import {
-  numToWords,
   getAmountInWords,
   getTimeZoneAbbr,
   generateDocNumber as generatePONumber,
@@ -13,6 +12,8 @@ import {
   PDF_TABLE_HEAD_STYLES,
   PDF_TABLE_BODY_STYLES,
   PDF_TABLE_ALTERNATE_ROW_STYLES,
+  drawPdfFooter,
+  drawSignatureArea,
   drawWatermark
 } from './pdfUtils';
 
@@ -24,7 +25,7 @@ export const generateLPOPDF = (data: LPOData) => {
   const opts = data.pdfOptions; // Short alias for configuration
   
   // -- Pastel Professional Color Palette --
-  const { dark: darkColor, muted: mutedColor, accent: accentColor, headerFill: tableHeaderFill, headerText: tableHeaderTx, stripe: tableStripe, border: tableBorder } = PDF_COLORS;
+  const { dark: darkColor, muted: mutedColor } = PDF_COLORS;
   const { setPrimary, setSecondary, setAccent } = getPdfTextHelpers(doc);
 
   // Ensure rates are sorted for deterministic behavior
@@ -454,78 +455,24 @@ export const generateLPOPDF = (data: LPOData) => {
   }
 
   // -- Signatures & Created By Section --
-  
   if (opts.showSignatureArea || opts.showCreatedBy) {
     if (yCursor > pageHeight - 40) {
         doc.addPage();
         yCursor = 20;
     }
-
-    const sigWidth = 60;
-    
-    // Created By (Left)
-    if (opts.showCreatedBy) {
-        const createX = marginX;
-        doc.setDrawColor(203, 213, 225); // Slate 300
-        doc.setLineWidth(0.5);
-        doc.line(createX, yCursor + 10, createX + sigWidth, yCursor + 10); 
-        
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "bold");
-        setSecondary();
-        doc.text("PREPARED BY", createX, yCursor + 14);
-        
-        doc.setFont("helvetica", "normal");
-        setPrimary();
-        doc.text(opts.createdByName || "__________________", createX, yCursor + 6);
-        doc.text(`Date: ${format(new Date(), 'dd MMM yyyy')}`, createX, yCursor + 18);
-    }
-
-    // Authorized Signature (Right)
-    if (opts.showSignatureArea) {
-        const sigX = pageWidth - marginX - sigWidth;
-        doc.setDrawColor(203, 213, 225); // Slate 300
-        doc.setLineWidth(0.5);
-        doc.line(sigX, yCursor + 10, sigX + sigWidth, yCursor + 10);
-        
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "bold");
-        setSecondary();
-        doc.text("AUTHORIZED SIGNATURE", sigX, yCursor + 14);
-        
-        if (opts.authorizedSignatoryName) {
-            doc.setFont("helvetica", "normal");
-            setPrimary();
-            doc.text(opts.authorizedSignatoryName, sigX, yCursor + 6);
-        }
-        
-        doc.setFont("helvetica", "normal");
-        setPrimary();
-        doc.text("Date:", sigX, yCursor + 18);
-    }
+    drawSignatureArea(doc, yCursor, {
+      showCreatedBy: opts.showCreatedBy,
+      createdByName: opts.createdByName,
+      showSignature: opts.showSignatureArea,
+      signatureName: opts.authorizedSignatoryName
+    });
   }
 
-  // -- Footer --
-  const footerY = pageHeight - 12;
-  doc.setFontSize(7);
-  doc.setTextColor(148, 163, 184); // Slate 400
-
-  let footerText = "This document is computer generated and may be valid without a signature.";
-  if (opts.showSignatureArea) {
-    footerText = "This Local Purchase Order is valid only when signed by an authorized representative.";
-  }
-  
-  const pageCount = doc.getNumberOfPages();
-  for(let i = 1; i <= pageCount; i++) {
-     doc.setPage(i);
-     const rightX = pageWidth - marginX;
-     doc.text(`Ref: ${poNumber}`, rightX, footerY, { align: 'right' });
-     doc.text(`Page ${i} of ${pageCount}`, rightX, footerY + 3.5, { align: 'right' });
-
-     const maxDisclaimerWidth = pageWidth - (marginX * 2) - 50;
-     const disclaimerLines = doc.splitTextToSize(footerText, maxDisclaimerWidth);
-     doc.text(disclaimerLines, marginX, footerY);
-  }
+  // -- Footer (shared helper; wording depends on signature setting) --
+  const footerText = opts.showSignatureArea
+    ? "This Local Purchase Order is valid only when signed by an authorized representative."
+    : "This document is computer generated and may be valid without a signature.";
+  drawPdfFooter(doc, poNumber, footerText, marginX);
 
   // Draw Watermark if configured
   if (opts.watermarkText && opts.watermarkText.trim()) {

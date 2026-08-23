@@ -1,9 +1,17 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import ModeSelectorPage from './components/ModeSelectorPage';
 import { ToastProvider } from './components/shared/ToastContext';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 
 type AppMode = 'home' | 'hotel-lpo' | 'general-lpo' | 'hotel-invoice' | 'general-invoice';
+
+const MODE_TITLES: Record<AppMode, string> = {
+  home: 'Business Document Generator',
+  'hotel-lpo': 'Hotel LPO',
+  'general-lpo': 'General LPO',
+  'hotel-invoice': 'Hotel Invoice',
+  'general-invoice': 'General Invoice',
+};
 
 // Lazy-load modules for code splitting
 const HotelLPOModule = lazy(() => import('./components/HotelLPOModule'));
@@ -45,6 +53,13 @@ const LoadingFallback = () => (
 
 export default function App() {
   const [currentMode, setCurrentMode] = useState<AppMode>(getModeFromHash);
+
+  // Reflect the active module in the browser tab title
+  useEffect(() => {
+    document.title = currentMode === 'home'
+      ? 'Ordris — Business Document Generator'
+      : `${MODE_TITLES[currentMode]} — Ordris`;
+  }, [currentMode]);
 
   // Listen for browser back/forward navigation
   useEffect(() => {

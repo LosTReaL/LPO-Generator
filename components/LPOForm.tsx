@@ -1,13 +1,14 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { LPOData, DateRange, ApplicableRate, PdfOptions, GuestInfo } from '../types';
 import { GLOBAL_CURRENCIES } from '../types/currencies';
 import DateManager from './DateManager';
 import { Section, SubSection, Label, Input, Select, TextArea, Checkbox } from './shared/SharedUI';
+import { useToast } from './shared/ToastContext';
 import { 
   Plus, X, User, Building, CreditCard, FileText, Trash2, 
   Calendar, Settings, AlignJustify, Calculator, EyeOff, 
-  Image as ImageIcon, PenTool, Type, Hash, ChevronDown, Check,
-  MapPin, Briefcase, Phone, Mail, Star, FileSpreadsheet, Shield, FileCheck
+  Image as ImageIcon, PenTool, Type, Hash,
+  MapPin, Briefcase, Phone, Mail, Star, FileSpreadsheet, FileCheck
 } from 'lucide-react';
 import { format, differenceInCalendarDays, areIntervalsOverlapping, startOfDay } from 'date-fns';
 
@@ -19,6 +20,7 @@ interface LPOFormProps {
 const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
   const [newRateAmount, setNewRateAmount] = useState<string>('');
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const { addToast } = useToast();
   
   const updateField = (field: keyof LPOData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -70,7 +72,7 @@ const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
     });
 
     if (hasOverlap) {
-      alert('Cannot add overlapping rate. Please check existing rates.');
+      addToast('Cannot add overlapping rate. Please check existing rates.', 'error');
       return;
     }
 
@@ -140,11 +142,11 @@ const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        addToast('Please select an image file.', 'error');
         return;
       }
       if (file.size > 500 * 1024) {
-        alert('File size too large. Please select an image under 500KB.');
+        addToast('File size too large. Please select an image under 500KB.', 'error');
         if (logoInputRef.current) logoInputRef.current.value = '';
         return;
       }
@@ -260,7 +262,7 @@ const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
                       />
                     </div>
                     {data.guests.length > 1 && (
-                      <button onClick={() => removeGuest(idx)} className="btn-icon-delete">
+                      <button onClick={() => removeGuest(idx)} className="btn-icon-delete" aria-label={`Remove guest ${idx + 1}`}>
                         <Trash2 size={18} />
                       </button>
                     )}
@@ -399,9 +401,9 @@ const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
                          <span className="rate-item-amount">
                            {data.currency} {rate.amount}
                          </span>
-                         <button onClick={() => removeApplicableRate(rate.id)} className="btn-icon-delete">
-                          <Trash2 size={16} />
-                        </button>
+                          <button onClick={() => removeApplicableRate(rate.id)} className="btn-icon-delete" aria-label={`Remove rate for ${format(rate.start, 'd MMM')}`}>
+                           <Trash2 size={16} />
+                         </button>
                       </div>
                     </div>
                   ))}

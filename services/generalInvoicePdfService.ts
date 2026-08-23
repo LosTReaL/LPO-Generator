@@ -1,10 +1,13 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { GeneralInvoiceData } from '../types/hotelInvoice';
+import { GeneralInvoiceData } from '../types/generalInvoice';
 import { getAmountInWords, drawPdfFooter, drawWatermark, PDF_TABLE_HEAD_STYLES, PDF_TABLE_BODY_STYLES, PDF_TABLE_ALTERNATE_ROW_STYLES } from './pdfUtils';
 
+// jsPDF's built-in Helvetica font cannot render non-Latin currency glyphs
+// (₹, ₺, ﷼ …) that Intl.NumberFormat emits for some ISO codes, so amounts
+// are formatted as "USD 12.00" instead — matching the other PDF services.
 const formatCurrency = (amount: number, currency: string) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+  return `${currency} ${amount.toFixed(2)}`;
 };
 
 export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
@@ -39,7 +42,7 @@ export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
     data.companyPhone,
     data.companyEmail,
     data.companyTaxId ? `Tax ID: ${data.companyTaxId}` : ''
-  ].filter(Boolean);
+  ].filter((line): line is string => Boolean(line));
   
   let currentY = 28;
   companyLines.forEach(line => {
@@ -62,7 +65,7 @@ export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
     data.customer.phone,
     data.customer.email,
     data.customer.taxId ? `Tax ID: ${data.customer.taxId}` : ''
-  ].filter(Boolean);
+  ].filter((line): line is string => Boolean(line));
 
   customerLines.forEach(line => {
     doc.text(line, 14, currentY);

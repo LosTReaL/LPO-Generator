@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LPOData, INITIAL_LPO_DATA, INITIAL_PDF_OPTIONS } from '../types';
+import { LPOData, INITIAL_LPO_DATA } from '../types';
 import LPOForm from './LPOForm';
 import { generateLPOPDF } from '../services/pdfService';
-import { FileDown, RotateCcw, Upload, Download, ArrowLeft } from 'lucide-react';
+import { normalizeHotelLpoData, parseImportPayload } from '../services/dataUtils';
+import { FileDown, RotateCcw, Upload, Download } from 'lucide-react';
 import { format, startOfDay, eachDayOfInterval, subDays } from 'date-fns';
 import { ModuleHeader } from './shared/SharedUI';
 import { useToast } from './shared/ToastContext';
@@ -12,83 +13,10 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 const getInitialData = (): LPOData => JSON.parse(JSON.stringify(INITIAL_LPO_DATA));
 
-const hydrateData = (data: any): LPOData => {
-  const parseDate = (d: string | Date) => {
-     if (!d) return new Date();
-     if (d instanceof Date) return d;
-     
-     if (typeof d === 'string') {
-         if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
-             const [year, month, day] = d.split('-').map(Number);
-             return new Date(year, month - 1, day);
-         }
-         const date = new Date(d);
-         return isNaN(date.getTime()) ? new Date() : date;
-     }
-     return new Date();
-  };
-
-  let safeChildAges = data.childAges || [];
-  if (data.childCount && safeChildAges.length !== data.childCount) {
-     const diff = data.childCount - safeChildAges.length;
-     if (diff > 0) {
-        safeChildAges = [...safeChildAges, ...Array(diff).fill(0)];
-     } else {
-        safeChildAges = safeChildAges.slice(0, data.childCount);
-     }
-  }
-
-  const legacyPdfOptions = {
-    showCompanyBillTo: data.showCompanyBillTo ?? false,
-    showGuestInBillTo: data.showGuestInBillTo ?? false,
-    showSignatureArea: data.showSignatureArea ?? false,
-    authorizedSignatoryName: data.authorizedSignatoryName ?? '',
-    showAverageRate: data.showAverageRate ?? false,
-    showDailyRateBreakdown: data.showDailyRateBreakdown ?? false,
-    showLogo: data.showLogo ?? false,
-    logoDataUrl: data.logoDataUrl ?? '',
-    showCreatedBy: data.showCreatedBy ?? false,
-    createdByName: data.createdByName ?? '',
-    showSupplierConfirmation: data.showSupplierConfirmation ?? false,
-    supplierConfirmationNumber: data.supplierConfirmationNumber ?? '',
-    showRateCodes: data.showRateCodes ?? true,
-    showApplicableRates: data.showApplicableRates ?? true,
-    showPaymentRemarks: data.showPaymentRemarks ?? true,
-    showCancellationPolicy: data.showCancellationPolicy ?? true,
-    showGeneralRemarks: data.showGeneralRemarks ?? true,
-    manualPOHeader: data.manualPOHeader ?? false,
-    poHeaderTitle: data.poHeaderTitle ?? 'PURCHASE ORDER',
-    manualPONumber: data.manualPONumber ?? false,
-    poNumber: data.poNumber ?? '',
-    showHotelInOccupancy: data.showHotelInOccupancy ?? false
-  };
-
-  const finalPdfOptions = {
-    ...INITIAL_PDF_OPTIONS,
-    ...(data.pdfOptions || legacyPdfOptions)
-  };
-
-  return {
-    ...INITIAL_LPO_DATA,
-    ...data,
-    stayRanges: (data.stayRanges || []).map((r: any) => ({
-      ...r,
-      start: parseDate(r.start),
-      end: parseDate(r.end)
-    })),
-    applicableRates: (data.applicableRates || []).map((r: any) => ({
-      ...r,
-      start: parseDate(r.start),
-      end: parseDate(r.end)
-    })),
-    guests: (data.guests || []).map((g: any) => {
-      if (typeof g === 'string') return { name: g, loyaltyNumber: '' };
-      return { name: g?.name || '', loyaltyNumber: g?.loyaltyNumber || '' };
-    }),
-    childAges: safeChildAges,
-    pdfOptions: finalPdfOptions
-  };
-};
+// hydrateData keeps its name for legacy-format migration; the heavy
+// lifting (type coercion, date parsing, option merging) now lives in
+// services/dataUtils so imports and storage loads share one code path.
+const hydrateData = (data: any): LPOData => normalizeHotelLpoData(data ?? {});
 
 interface HotelLPOModuleProps {
   onNavigateHome: () => void;
@@ -98,6 +26,7 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
   const [lpoData, setLpoData] = useState<LPOData>(getInitialData());
   const [isLoaded, setIsLoaded] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
@@ -148,9 +77,10 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(storagePayload));
       } catch (e) {
         console.error('Failed to save data', e);
+        addToast('Changes could not be saved locally (storage full or unavailable).', 'warning');
       }
     }
-  }, [lpoData, isLoaded]);
+  }, [lpoData, isLoaded, addToast]);
 
   const handleReset = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -224,8 +154,10 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
   };
 
   const handleDownloadPDF = () => {
+    if (isGenerating) return;
+
     const { errors, warnings } = validateData();
-    
+
     if (errors.length > 0) {
       addToast(`Validation failed: ${errors[0]}${errors.length > 1 ? ` (+${errors.length - 1} more)` : ''}`, 'error');
       return;
@@ -238,12 +170,15 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
       if (!proceed) return;
     }
 
+    setIsGenerating(true);
     try {
       generateLPOPDF(lpoData);
       addToast('PDF generated successfully.', 'success');
     } catch (e) {
       addToast('An error occurred while generating PDF.', 'error');
       console.error(e);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -268,25 +203,27 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      addToast('File is too large to import (max 2 MB).', 'error');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      try {
-        const parsed = JSON.parse(event.target?.result as string);
-        if (parsed && typeof parsed === 'object') {
-          const restored = hydrateData(parsed);
-          setLpoData(restored);
-          setFormKey(prev => prev + 1);
-          addToast('Data imported successfully.', 'success');
-        } else {
-          addToast('Invalid data file format.', 'error');
-        }
-      } catch (err) {
-        addToast('Failed to read file.', 'error');
-        console.error(err);
-      } finally {
-        if (fileInputRef.current) fileInputRef.current.value = '';
+      const result = parseImportPayload(String(event.target?.result ?? ''));
+      if (!result.ok || !result.data) {
+        addToast(result.error ?? 'Failed to read file.', 'error');
+      } else {
+        setLpoData(hydrateData(result.data));
+        setFormKey(prev => prev + 1);
+        addToast('Data imported successfully.', 'success');
       }
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.onerror = () => {
+      addToast('Failed to read file.', 'error');
+      if (fileInputRef.current) fileInputRef.current.value = '';
     };
     reader.readAsText(file);
   };
@@ -331,14 +268,15 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
           <RotateCcw size={18} />
           <span className="btn-label">Reset</span>
         </button>
-        <button 
+        <button
           type="button"
           onClick={handleDownloadPDF}
           className="btn btn-primary"
           title="Generate PDF"
+          disabled={isGenerating}
         >
           <FileDown size={18} />
-          <span className="btn-label">Generate PDF</span>
+          <span className="btn-label">{isGenerating ? 'Generating…' : 'Generate PDF'}</span>
         </button>
       </ModuleHeader>
 
@@ -350,13 +288,15 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
           </div>
         </div>
       </main>
-      
+
       {/* Mobile Floating Action Button */}
-      <button 
+      <button
         type="button"
         onClick={handleDownloadPDF}
         className="fab"
         title="Generate PDF"
+        aria-label="Generate PDF"
+        disabled={isGenerating}
       >
         <FileDown size={28} />
       </button>

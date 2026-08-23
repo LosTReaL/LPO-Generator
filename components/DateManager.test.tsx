@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import DateManager from './DateManager';
@@ -140,7 +139,7 @@ describe('DateManager', () => {
   });
 
   it('does nothing when Add button clicked without selection or partial selection', () => {
-    const { container } = render(<DateManager ranges={[]} />);
+    render(<DateManager ranges={[]} />);
     const addBtn = screen.getByText('Add Range');
     
     // Force click when both are null

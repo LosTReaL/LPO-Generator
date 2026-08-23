@@ -3,10 +3,8 @@ import autoTable from 'jspdf-autotable';
 import { GeneralLPOData } from '../types/generalLpo';
 import { 
   generateDocNumber, 
-  getAmountInWords, 
-  getTimeZoneAbbr, 
+  getAmountInWords,
   PDF_COLORS, 
-  getPdfTextHelpers, 
   PDF_TABLE_HEAD_STYLES, 
   PDF_TABLE_BODY_STYLES,
   PDF_TABLE_ALTERNATE_ROW_STYLES,
@@ -18,7 +16,6 @@ import {
 
 export const generateGeneralLPOPDF = (data: GeneralLPOData): void => {
   const doc = new jsPDF();
-  const helpers = getPdfTextHelpers(doc);
 
   const poNumber = data.lpoNumberOverride?.trim() || generateDocNumber('PO');
   const currency = data.currency || 'USD';

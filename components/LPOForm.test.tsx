@@ -3,15 +3,29 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, test, vi } from 'vitest';
 import LPOForm from './LPOForm';
+import { ToastProvider } from './shared/ToastContext';
 import { LPOData, INITIAL_LPO_DATA } from '../types';
 
 const mockData: LPOData = { ...INITIAL_LPO_DATA };
+
+const renderForm = (data: LPOData, onChange = vi.fn()) =>
+  render(
+    <ToastProvider>
+      <LPOForm data={data} onChange={onChange} />
+    </ToastProvider>
+  );
+
+const WrappedForm: React.FC<React.ComponentProps<typeof LPOForm>> = (props) => (
+  <ToastProvider>
+    <LPOForm {...props} />
+  </ToastProvider>
+);
 
 test('LPOForm renders and interacts comprehensively', async () => {
   const onChange = vi.fn();
   const user = userEvent.setup();
 
-  const { rerender } = render(<LPOForm data={mockData} onChange={onChange} />);
+  const { rerender } = renderForm(mockData, onChange);
 
   // Basic Field updates
   const hotelNameInput = screen.getByPlaceholderText('e.g. Atlantis');
@@ -33,7 +47,7 @@ test('LPOForm renders and interacts comprehensively', async () => {
   await user.click(addGuestBtn);
 
   // Update data to reflect 2 guests
-  rerender(<LPOForm data={{...mockData, guests: [{name: 'G1', loyaltyNumber: ''}, {name: 'G2', loyaltyNumber: ''}]}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, guests: [{name: 'G1', loyaltyNumber: ''}, {name: 'G2', loyaltyNumber: ''}]}} onChange={onChange} />);
   const deleteGuestBtns = screen.getAllByRole('button').filter(b => b.className === 'btn-icon-delete');
   if (deleteGuestBtns.length > 0) {
     await user.click(deleteGuestBtns[0]);
@@ -69,7 +83,7 @@ test('LPOForm renders and interacts comprehensively', async () => {
   fireEvent.change(childInput, { target: { value: 'abc' } });
 
   // Render with children to test child ages
-  rerender(<LPOForm data={{...mockData, childCount: 2, childAges: [5, 6]}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, childCount: 2, childAges: [5, 6]}} onChange={onChange} />);
   
   const childAgePanel = document.querySelector('.child-ages-panel') as HTMLElement;
   if (childAgePanel) {
@@ -111,7 +125,7 @@ test('LPOForm renders and interacts comprehensively', async () => {
   
   // Rate Overlap Validation
   const overlappingData = { ...mockData, applicableRates: [{ id: '1', start: new Date('2026-08-01'), end: new Date('2026-08-05'), amount: 100 }] };
-  rerender(<LPOForm data={overlappingData} onChange={onChange} />);
+  rerender(<WrappedForm data={overlappingData} onChange={onChange} />);
   
   const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
   
@@ -124,7 +138,7 @@ test('LPOForm renders and interacts comprehensively', async () => {
   alertMock.mockRestore();
 
   // Removing applicable rate
-  rerender(<LPOForm data={{...mockData, applicableRates: [{ id: '1', start: new Date('2026-08-01'), end: new Date('2026-08-05'), amount: 100 }]}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, applicableRates: [{ id: '1', start: new Date('2026-08-01'), end: new Date('2026-08-05'), amount: 100 }]}} onChange={onChange} />);
   const rateDeleteBtns = screen.queryAllByRole('button').filter(b => b.className === 'btn-icon-delete');
   if (rateDeleteBtns.length > 0) {
     await user.click(rateDeleteBtns[0]);
@@ -151,7 +165,7 @@ test('LPOForm renders and interacts comprehensively', async () => {
   fireEvent.click(dl);
 
   // Rerender with showLogo true to reveal the file input
-  rerender(<LPOForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, showLogo: true}}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, showLogo: true}}} onChange={onChange} />);
 
   // Logo Upload
   const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -177,7 +191,7 @@ test('LPOForm renders and interacts comprehensively', async () => {
   fireEvent.change(fileInput, { target: { files: [largeFile] } });
 
   // Remove Logo
-  rerender(<LPOForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, logoDataUrl: 'data:image/png;base64,123'}}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, logoDataUrl: 'data:image/png;base64,123'}}} onChange={onChange} />);
   const removeLogoBtns = screen.queryAllByRole('button').filter(b => b.className === 'logo-remove-btn');
   if (removeLogoBtns.length > 0) {
     await user.click(removeLogoBtns[0]);
@@ -189,38 +203,38 @@ test('LPOForm renders and interacts comprehensively', async () => {
   
   const watermarkCb = screen.getByText('Apply Watermark');
   await user.click(watermarkCb);
-  rerender(<LPOForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, watermarkText: 'DRAFT'}}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, watermarkText: 'DRAFT'}}} onChange={onChange} />);
   
   const watermarkInput = screen.getByPlaceholderText(/DRAFT or CANCELLED/i);
   await user.type(watermarkInput, 'TEST');
   
   const overrideHeaderCb = screen.getByText('Override Header Title');
   await user.click(overrideHeaderCb);
-  rerender(<LPOForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, manualPOHeader: true, poHeaderTitle: 'BOOKING REQUEST'}}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, manualPOHeader: true, poHeaderTitle: 'BOOKING REQUEST'}}} onChange={onChange} />);
   const headerInput = screen.getByPlaceholderText('e.g. BOOKING REQUEST');
   await user.type(headerInput, 'REQ');
   
   const overrideLpoCb = screen.getByText('Override LPO Number');
   await user.click(overrideLpoCb);
-  rerender(<LPOForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, manualPONumber: true, poNumber: '123'}}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, manualPONumber: true, poNumber: '123'}}} onChange={onChange} />);
   const poInput = screen.getByPlaceholderText('Custom LPO #');
   await user.type(poInput, '123');
 
   const confCb = screen.getByText('Include Supplier Ref #');
   await user.click(confCb);
-  rerender(<LPOForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, showSupplierConfirmation: true, supplierConfirmationNumber: 'abc'}}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, showSupplierConfirmation: true, supplierConfirmationNumber: 'abc'}}} onChange={onChange} />);
   const confInput = screen.getByPlaceholderText('Confirmation #');
   await user.type(confInput, 'abc');
 
   const sigCb = screen.getByText('Enable Authorized Signature Area');
   await user.click(sigCb);
-  rerender(<LPOForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, showSignatureArea: true}}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, showSignatureArea: true}}} onChange={onChange} />);
   const sigInput = screen.getByPlaceholderText('Signatory Name');
   await user.type(sigInput, 'John');
 
   const creatorCb = screen.getByText("Show 'Prepared By' Section");
   await user.click(creatorCb);
-  rerender(<LPOForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, showCreatedBy: true}}} onChange={onChange} />);
+  rerender(<WrappedForm data={{...mockData, pdfOptions: {...mockData.pdfOptions, showCreatedBy: true}}} onChange={onChange} />);
   const creatorInput = screen.getByPlaceholderText('Enter Name');
   await user.type(creatorInput, 'Jane');
   

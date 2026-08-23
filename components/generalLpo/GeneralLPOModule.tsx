@@ -1,47 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GeneralLPOForm } from './GeneralLPOForm';
-import { GeneralLPOData } from '../../types/generalLpo';
+import { GeneralLPOData, INITIAL_GENERAL_LPO } from '../../types/generalLpo';
 import { generateGeneralLPOPDF } from '../../services/generalLpoPdfService';
-import { Upload, Download, RefreshCw, FileCheck, ArrowLeft } from 'lucide-react';
+import { normalizeGeneralLpoData, parseImportPayload } from '../../services/dataUtils';
+import { Upload, Download, RefreshCw, FileCheck } from 'lucide-react';
 import { ModuleHeader } from '../shared/SharedUI';
 import { useToast } from '../shared/ToastContext';
 
 const STORAGE_KEY = 'ordris_general_lpo_v1';
 const STORAGE_EXPIRY_DAYS = 7;
 
-const initialData: GeneralLPOData = {
-  companyInfo: {
-    name: '',
-    email: '',
-    phone: '',
-    address: ''
-  },
-  supplierInfo: {
-    name: '',
-    contactPerson: '',
-    email: '',
-    phone: '',
-    taxId: '',
-    address: ''
-  },
-  items: [],
-  currency: 'USD',
-  discountType: 'flat',
-  discountValue: 0,
-  taxType: 'percentage',
-  taxRate: 0,
-  taxLabel: 'VAT',
-  shippingCharges: 0,
-  status: 'Draft',
-  includeSignature: true
-};
-
 interface Props {
   onNavigateHome: () => void;
 }
 
 export default function GeneralLPOModule({ onNavigateHome }: Props) {
-  const [data, setData] = useState<GeneralLPOData>(initialData);
+  const [data, setData] = useState<GeneralLPOData>(INITIAL_GENERAL_LPO);
+  const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
@@ -54,9 +29,9 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
         const savedTime = parsed._timestamp;
         const now = new Date().getTime();
         const expiryMs = STORAGE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-        
+
         if (savedTime && now - savedTime < expiryMs) {
-          setData(parsed.data);
+          setData(normalizeGeneralLpoData(parsed.data ?? {}));
         } else {
           localStorage.removeItem(STORAGE_KEY);
         }
@@ -66,7 +41,7 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
     }
   }, []);
 
-  // Save to localStorage
+  // Save to localStorage (debounced)
   useEffect(() => {
     const timeout = setTimeout(() => {
       try {
@@ -76,10 +51,11 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
         }));
       } catch (e) {
         console.error('Failed to save LPO data to localStorage', e);
+        addToast('Changes could not be saved locally (storage full or unavailable).', 'warning');
       }
     }, 1000);
     return () => clearTimeout(timeout);
-  }, [data]);
+  }, [data, addToast]);
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,19 +63,15 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        const parsed = JSON.parse(content);
-        if (parsed && typeof parsed === 'object') {
-          setData({ ...initialData, ...parsed });
-          addToast('Data imported successfully.', 'success');
-        } else {
-          addToast('Invalid data file format.', 'error');
-        }
-      } catch (err) {
-        addToast('Invalid JSON file.', 'error');
+      const result = parseImportPayload(String(event.target?.result ?? ''));
+      if (!result.ok || !result.data) {
+        addToast(result.error ?? 'Invalid JSON file.', 'error');
+      } else {
+        setData(normalizeGeneralLpoData(result.data));
+        addToast('Data imported successfully.', 'success');
       }
     };
+    reader.onerror = () => addToast('Invalid JSON file.', 'error');
     reader.readAsText(file);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -122,12 +94,14 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset all form data? This cannot be undone.')) {
-      setData(initialData);
+      setData(INITIAL_GENERAL_LPO);
+      localStorage.removeItem(STORAGE_KEY);
       addToast('Form has been reset.', 'info');
     }
   };
 
   const handleGeneratePDF = () => {
+    if (isGenerating) return;
     if (!data.companyInfo?.name?.trim()) {
       addToast('Company Name is required.', 'error');
       return;
@@ -136,12 +110,15 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
       addToast('At least one line item is required.', 'error');
       return;
     }
+    setIsGenerating(true);
     try {
       generateGeneralLPOPDF(data);
       addToast('PDF generated successfully.', 'success');
     } catch (e) {
       addToast('An error occurred while generating PDF.', 'error');
       console.error(e);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -149,12 +126,12 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
     <div className="app-shell">
       <div className="module-wrapper">
       <ModuleHeader title="General LPO" onNavigateHome={onNavigateHome}>
-        <input 
-          type="file" 
-          accept=".json" 
-          ref={fileInputRef} 
-          style={{ display: 'none' }} 
-          onChange={handleImport} 
+        <input
+          type="file"
+          accept=".json"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          onChange={handleImport}
         />
         <button className="btn btn-ghost" onClick={() => fileInputRef.current?.click()} title="Import JSON">
           <Upload size={18} />
@@ -169,12 +146,12 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
           <RefreshCw size={18} />
           <span className="btn-label">Reset</span>
         </button>
-        <button onClick={handleGeneratePDF} className="btn btn-primary" title="Generate PDF">
+        <button onClick={handleGeneratePDF} className="btn btn-primary" title="Generate PDF" disabled={isGenerating}>
           <FileCheck size={18} />
-          <span className="btn-label">Generate PDF</span>
+          <span className="btn-label">{isGenerating ? 'Generating…' : 'Generate PDF'}</span>
         </button>
       </ModuleHeader>
-      
+
       <main className="main-content">
         <div className="content-card">
           <div className="content-card-body">
@@ -183,7 +160,13 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
         </div>
       </main>
 
-      <button className="fab btn-primary" onClick={handleGeneratePDF} title="Generate PDF" style={{ position: 'fixed', bottom: '2rem', right: '2rem', borderRadius: '50%', width: '3.5rem', height: '3.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 0, zIndex: 100 }}>
+      <button
+        className="fab"
+        onClick={handleGeneratePDF}
+        title="Generate PDF"
+        aria-label="Generate PDF"
+        disabled={isGenerating}
+      >
         <FileCheck size={24} />
       </button>
       </div>

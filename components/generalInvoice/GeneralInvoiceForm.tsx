@@ -3,8 +3,8 @@ import {
   Building2, User, FileText, CreditCard, Wallet, 
   Settings, RefreshCw, Plus, Trash2, Calendar, FileDigit
 } from 'lucide-react';
-import { GeneralInvoiceData, InvoiceItem, GenPaymentRecord, CreditNote, GEN_INVOICE_CURRENCIES, GeneralInvoiceStatus } from '../../types/hotelInvoice';
-import { Section, SubSection, Label, Input, Select, TextArea, Checkbox, StatusBadge } from '../shared/SharedUI';
+import { GeneralInvoiceData, InvoiceItem, GenPaymentRecord, CreditNote, GEN_INVOICE_CURRENCIES, GeneralInvoiceStatus } from '../../types/generalInvoice';
+import { Section, Label, Input, Select, TextArea, Checkbox, StatusBadge } from '../shared/SharedUI';
 
 interface Props {
   data: GeneralInvoiceData;
@@ -210,7 +210,7 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
               <div key={item.id} className="item-card">
                 <div className="item-card-header">
                   <span className="item-card-number">Item {index + 1}</span>
-                  <button onClick={() => removeItem(index)} className="btn-icon btn-icon-danger">
+                  <button onClick={() => removeItem(index)} className="btn-icon btn-icon-danger" aria-label="Remove item">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -239,7 +239,7 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
                   </div>
                   <div className="form-group">
                     <Label>Total</Label>
-                    <div className="font-semibold text-lg py-2">
+                    <div style={{ padding: '0.5rem 0', fontSize: '1.125rem', fontWeight: 600 }}>
                       {item.total.toFixed(2)} {data.currency}
                     </div>
                   </div>
@@ -259,7 +259,7 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
               <div key={payment.id} className="item-card">
                  <div className="item-card-header">
                   <span className="item-card-number">Payment {index + 1}</span>
-                  <button onClick={() => removePayment(index)} className="btn-icon btn-icon-danger">
+                  <button onClick={() => removePayment(index)} className="btn-icon btn-icon-danger" aria-label="Remove payment">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -406,7 +406,7 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
               <div key={note.id} className="item-card">
                  <div className="item-card-header">
                   <span className="item-card-number">Credit Note {index + 1}</span>
-                  <button onClick={() => removeCreditNote(index)} className="btn-icon btn-icon-danger">
+                  <button onClick={() => removeCreditNote(index)} className="btn-icon btn-icon-danger" aria-label="Remove credit note">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -439,7 +439,7 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
                <div className="form-group">
                  <Label>Frequency</Label>
                  <Select 
-                   value={data.recurring.frequency} 
+                   value={data.recurring.frequency ?? ''} 
                    onChange={v => updateRecurring('frequency', v as any)}
                    options={['weekly', 'monthly', 'quarterly', 'yearly']} 
                  />
@@ -453,64 +453,59 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
         </Section>
 
         {/* SUMMARY CARD */}
-        <div className="content-card bg-neutral-50 border-primary-100">
-          <div className="content-card-body">
-            <h3 className="text-lg font-bold text-neutral-800 mb-4 flex items-center gap-2">
-               Summary
-               <StatusBadge status={data.status} />
-            </h3>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between text-neutral-600">
-                <span>Subtotal:</span>
-                <span>{totals.subtotal.toFixed(2)} {data.currency}</span>
-              </div>
-              {totals.globalDiscount > 0 && (
-                <div className="flex justify-between text-success-600">
-                  <span>Discount:</span>
-                  <span>-{totals.globalDiscount.toFixed(2)} {data.currency}</span>
-                </div>
-              )}
-              {totals.totalTax > 0 && (
-                <div className="flex justify-between text-neutral-600">
-                  <span>{data.usePerItemTax ? 'Tax' : data.globalTaxLabel}:</span>
-                  <span>{totals.totalTax.toFixed(2)} {data.currency}</span>
-                </div>
-              )}
-              {data.shippingCharges > 0 && (
-                 <div className="flex justify-between text-neutral-600">
-                  <span>Shipping/Handling:</span>
-                  <span>{data.shippingCharges.toFixed(2)} {data.currency}</span>
-                </div>
-              )}
-              {totals.creditNotesTotal > 0 && (
-                <div className="flex justify-between text-danger-600">
-                  <span>Credit Notes Applied:</span>
-                  <span>-{totals.creditNotesTotal.toFixed(2)} {data.currency}</span>
-                </div>
-              )}
-              
-              <div className="border-t border-neutral-200 my-2 pt-2"></div>
-              
-              <div className="flex justify-between text-lg font-bold text-neutral-900">
-                <span>Grand Total:</span>
-                <span>{totals.grandTotal.toFixed(2)} {data.currency}</span>
-              </div>
-              
-              {totals.paymentsTotal > 0 && (
-                <div className="flex justify-between text-success-600 font-semibold mt-2">
-                  <span>Amount Paid:</span>
-                  <span>{totals.paymentsTotal.toFixed(2)} {data.currency}</span>
-                </div>
-              )}
-              
-              <div className="flex justify-between text-lg font-bold text-primary-600 mt-2 bg-primary-50 p-2 rounded">
-                <span>Balance Due:</span>
-                <span>{totals.balance.toFixed(2)} {data.currency}</span>
-              </div>
-
-            </div>
+        <div className="summary-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700 }}>Summary</h3>
+            <StatusBadge status={data.status} />
           </div>
+
+          <div className="summary-card-row">
+            <span className="summary-card-label">Subtotal</span>
+            <span className="summary-card-value">{totals.subtotal.toFixed(2)} {data.currency}</span>
+          </div>
+          {totals.globalDiscount > 0 && (
+            <div className="summary-card-row">
+              <span className="summary-card-label">Discount</span>
+              <span className="summary-card-value" style={{ color: 'var(--emerald-200)' }}>-{totals.globalDiscount.toFixed(2)} {data.currency}</span>
+            </div>
+          )}
+          {totals.totalTax > 0 && (
+            <div className="summary-card-row">
+              <span className="summary-card-label">{data.usePerItemTax ? 'Tax' : data.globalTaxLabel}</span>
+              <span className="summary-card-value">{totals.totalTax.toFixed(2)} {data.currency}</span>
+            </div>
+          )}
+          {data.shippingCharges > 0 && (
+            <div className="summary-card-row">
+              <span className="summary-card-label">Shipping/Handling</span>
+              <span className="summary-card-value">{data.shippingCharges.toFixed(2)} {data.currency}</span>
+            </div>
+          )}
+          {totals.creditNotesTotal > 0 && (
+            <div className="summary-card-row">
+              <span className="summary-card-label">Credit Notes Applied</span>
+              <span className="summary-card-value" style={{ color: 'var(--rose-300)' }}>-{totals.creditNotesTotal.toFixed(2)} {data.currency}</span>
+            </div>
+          )}
+
+          <div className="summary-card-row summary-card-total">
+            <span className="summary-card-label" style={{ color: 'white', fontWeight: 700 }}>Grand Total</span>
+            <span className="summary-card-value">{totals.grandTotal.toFixed(2)} {data.currency}</span>
+          </div>
+
+          {totals.paymentsTotal > 0 && (
+            <div className="summary-card-row">
+              <span className="summary-card-label">Amount Paid</span>
+              <span className="summary-card-value" style={{ color: 'var(--emerald-200)' }}>{totals.paymentsTotal.toFixed(2)} {data.currency}</span>
+            </div>
+          )}
+
+          {totals.paymentsTotal > 0 && (
+            <div className="summary-card-row">
+              <span className="summary-card-label" style={{ color: 'white', fontWeight: 700 }}>Balance Due</span>
+              <span className="summary-card-value">{totals.balance.toFixed(2)} {data.currency}</span>
+            </div>
+          )}
         </div>
 
       </div>

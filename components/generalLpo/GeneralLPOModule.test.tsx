@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import GeneralLPOModule from './GeneralLPOModule';
 import { generateGeneralLPOPDF } from '../../services/generalLpoPdfService';
 

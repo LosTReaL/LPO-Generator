@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
-import { HotelInvoiceData } from '../types/generalInvoice';
+import { HotelInvoiceData } from '../types/hotelInvoice';
 import { 
   getAmountInWords, generateDocNumber, PDF_COLORS, 
   getPdfTextHelpers, PDF_TABLE_HEAD_STYLES, PDF_TABLE_BODY_STYLES, 
@@ -17,7 +17,6 @@ export const generateHotelInvoicePDF = (data: HotelInvoiceData) => {
 
   const invoiceNum = data.invoiceNumber || generateDocNumber('INV');
   const issueDate = data.invoiceDate ? format(new Date(data.invoiceDate), 'dd MMM yyyy') : format(new Date(), 'dd MMM yyyy');
-  const dueDate = data.dueDate ? format(new Date(data.dueDate), 'dd MMM yyyy') : 'On Receipt';
   const isTaxInvoice = data.taxRate > 0;
 
   // --- HEADER ---

@@ -33,6 +33,8 @@ export const GeneralLPOForm: React.FC<GeneralLPOFormProps> = ({ data, onChange }
     });
   };
 
+  const items = data.items ?? [];
+
   const addItem = () => {
     const newItem: LineItem = {
       id: Math.random().toString(36).substring(2, 9),
@@ -42,11 +44,11 @@ export const GeneralLPOForm: React.FC<GeneralLPOFormProps> = ({ data, onChange }
       unitPrice: 0,
       total: 0
     };
-    handleChange('items', [...data.items, newItem]);
+    handleChange('items', [...items, newItem]);
   };
 
   const updateItem = (id: string, field: keyof LineItem, value: any) => {
-    const updatedItems = data.items.map((item) => {
+    const updatedItems = items.map((item) => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
         if (field === 'quantity' || field === 'unitPrice') {
@@ -60,7 +62,7 @@ export const GeneralLPOForm: React.FC<GeneralLPOFormProps> = ({ data, onChange }
   };
 
   const removeItem = (id: string) => {
-    handleChange('items', data.items.filter(item => item.id !== id));
+    handleChange('items', items.filter(item => item.id !== id));
   };
 
   // Calculate totals
@@ -196,6 +198,13 @@ export const GeneralLPOForm: React.FC<GeneralLPOFormProps> = ({ data, onChange }
                 </tr>
               </thead>
               <tbody>
+                {(!data.items || data.items.length === 0) && (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="items-empty">No line items yet. Use the button below to add the first one.</div>
+                    </td>
+                  </tr>
+                )}
                 {data.items?.map((item) => (
                   <tr key={item.id}>
                     <td>
@@ -235,10 +244,11 @@ export const GeneralLPOForm: React.FC<GeneralLPOFormProps> = ({ data, onChange }
                       {(item.total || 0).toFixed(2)}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => removeItem(item.id)}
                         className="btn-icon-delete"
+                        aria-label="Remove line item"
                       >
                         <Trash2 size={16} />
                       </button>
