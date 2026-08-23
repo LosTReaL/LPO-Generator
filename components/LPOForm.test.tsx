@@ -254,3 +254,25 @@ test('LPOForm renders and interacts comprehensively', async () => {
   const cb2 = screen.getByText('Include Guest Name (Bill To)');
   await user.click(cb2);
 });
+
+test('invalid rate amounts give explicit feedback instead of failing silently (regression)', async () => {
+  const user = userEvent.setup();
+  const { container } = render(
+    <ToastProvider>
+      <LPOForm data={{ ...mockData }} onChange={vi.fn()} />
+    </ToastProvider>
+  );
+
+  // The rate calendar requires a selected date range before Add Rate acts,
+  // so reproduce the real sequence: pick two days, then an invalid amount.
+  const rateCalendar = container.querySelector('.rate-calendar-border')!;
+  const days = rateCalendar.querySelectorAll('.calendar-day');
+  fireEvent.click(days[5]);
+  fireEvent.click(days[7]);
+
+  const rateInput = screen.getByPlaceholderText(`Rate (${mockData.currency})`);
+  await user.type(rateInput, '-50');
+  await user.click(screen.getByText('Add Rate'));
+
+  expect(await screen.findByText(/Enter a rate amount greater than zero/i)).toBeInTheDocument();
+});

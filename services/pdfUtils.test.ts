@@ -102,6 +102,13 @@ describe('pdfUtils', () => {
       expect(getAmountInWords(50.25, 'UNKNOWN')).toBe('Fifty UNKNOWN and Twenty-Five Subunits Only');
       expect(getAmountInWords(50.01, 'UNKNOWN')).toBe('Fifty UNKNOWN and One Subunit Only');
     });
+
+    it('handles negative amounts without off-by-one on the integer part (regression)', () => {
+      // Math.floor(-50.5) === -51 would have produced "Minus Fifty-One ... and Fifty Cents"
+      expect(getAmountInWords(-50.5, 'USD')).toBe('Minus Fifty Dollars and Fifty Cents Only');
+      expect(getAmountInWords(-1000, 'AED')).toBe('Minus One Thousand Dirhams Only');
+      expect(getAmountInWords(-0.05, 'USD')).toBe('Minus Zero Dollars and Five Cents Only');
+    });
   });
 
   describe('generateDocNumber', () => {

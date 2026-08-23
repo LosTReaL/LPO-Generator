@@ -88,7 +88,19 @@ export const Input = ({
       min={min}
       max={max}
       disabled={disabled}
-      onChange={(e) => onChange(type === 'number' ? Number(e.target.value) : e.target.value)}
+      onChange={(e) => {
+        if (type === 'number') {
+          // Keydown blocking only stops typed keys — clipboard pastes skip it,
+          // so bounds are enforced here instead of trusting the browser.
+          let n = Number(e.target.value);
+          if (!Number.isFinite(n)) n = min ?? 0;
+          if (min !== undefined && n < min) n = min;
+          if (max !== undefined && n > max) n = max;
+          onChange(n);
+        } else {
+          onChange(e.target.value);
+        }
+      }}
       onKeyDown={(e) => {
         if (type === 'number' && min !== undefined && min >= 0) {
           if (e.key === '-' || e.key === 'e') e.preventDefault();

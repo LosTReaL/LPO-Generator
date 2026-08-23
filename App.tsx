@@ -21,7 +21,8 @@ const GeneralInvoiceModule = lazy(() => import('./components/generalInvoice/Gene
 
 // Hash-based routing for GitHub Pages compatibility
 const getModeFromHash = (): AppMode => {
-  const hash = window.location.hash.replace('#/', '').replace('#', '');
+  // Tolerate trailing slashes / query-ish tails: '#/hotel-lpo/' -> 'hotel-lpo'
+  const hash = window.location.hash.replace(/^#\/?/, '').split('/')[0];
   const validModes: AppMode[] = ['hotel-lpo', 'general-lpo', 'hotel-invoice', 'general-invoice'];
   return validModes.includes(hash as AppMode) ? (hash as AppMode) : 'home';
 };

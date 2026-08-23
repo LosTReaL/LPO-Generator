@@ -5,9 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Ordris — Professional business document generator for LPOs, invoices, and purchase orders. Supports hotel and general business workflows with PDF export." />
     <meta name="theme-color" content="#0f172a" />
+    <!-- Defense-in-depth: everything is local except Google Fonts.
+         data:/blob: images cover logo uploads & previews; worker-src allows
+         the PWA service worker. -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>Ordris — Business Document Generator</title>
     <link rel="icon" type="image/svg+xml" href="/Ordris/icon.svg" />
     <link rel="apple-touch-icon" href="/Ordris/icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>

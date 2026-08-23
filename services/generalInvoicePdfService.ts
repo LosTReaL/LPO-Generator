@@ -80,15 +80,20 @@ export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
   tableColumn.push("Total");
 
   const tableRows = data.items.map((item, index) => {
+    // Recompute the displayed total so it always matches the active tax
+    // mode (stored item.total can be stale right after toggling modes).
+    const gross = item.quantity * item.unitPrice;
+    const perItemTax = data.usePerItemTax ? gross * (item.taxRate / 100) : 0;
+    const displayTotal = Math.max(0, gross + perItemTax - (item.discount || 0));
     const row = [
       (index + 1).toString(),
       item.description,
       item.quantity.toString(),
       formatCurrency(item.unitPrice, currency),
-      formatCurrency(item.discount, currency)
+      formatCurrency(item.discount || 0, currency)
     ];
     if (data.usePerItemTax) row.push(`${item.taxRate}%`);
-    row.push(formatCurrency(item.total, currency));
+    row.push(formatCurrency(displayTotal, currency));
     return row;
   });
 
@@ -164,14 +169,12 @@ export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
 
   let totalsY = finalY;
   for (let i = 0; i < totalLabels.length; i++) {
+    const isLast = i === totalLabels.length - 1;
+    // Style BEFORE drawing so the Grand Total label and value match.
+    doc.setFont('helvetica', isLast ? 'bold' : 'normal');
+    doc.setFontSize(isLast ? 12 : 10);
     doc.text(totalLabels[i], 140, totalsY);
-    if (i === totalLabels.length - 1) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-    }
     doc.text(totalValues[i], 195, totalsY, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
     totalsY += 6;
   }
 

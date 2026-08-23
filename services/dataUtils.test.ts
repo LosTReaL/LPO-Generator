@@ -202,6 +202,23 @@ describe('normalizeHotelLpoData', () => {
     expect(result.pdfOptions.showRateCodes).toBe(true); // default preserved
   });
 
+  it('drops inverted or zero-length stay ranges (stay semantics require end > start)', () => {
+    const result = normalizeHotelLpoData({
+      stayRanges: [
+        { start: '2026-03-10', end: '2026-03-08' }, // inverted
+        { start: '2026-03-10', end: '2026-03-10' }, // zero nights
+        { start: '2026-03-10', end: '2026-03-12' }, // valid
+      ],
+    });
+    expect(result.stayRanges).toHaveLength(1);
+    expect(result.stayRanges[0].nights).toBeGreaterThan(0);
+  });
+
+  it('rejects unknown currency codes, keeping the module default', () => {
+    const result = normalizeHotelLpoData({ currency: 'XOX' });
+    expect(result.currency).toBe(INITIAL_LPO_DATA.currency);
+  });
+
   it('handles null/undefined input without throwing', () => {
     expect(() => normalizeHotelLpoData(null as any)).not.toThrow();
     expect(normalizeHotelLpoData(undefined as any).currency).toBeDefined();
@@ -245,6 +262,25 @@ describe('normalizeGeneralLpoData', () => {
     const result = normalizeGeneralLpoData({ expectedDeliveryDate: '01/30/2026', approvalDate: '2026-01-30' });
     expect(result.expectedDeliveryDate).toBe('');
     expect(result.approvalDate).toBe('2026-01-30');
+  });
+
+  it('coerces enum-ish and boolean fields instead of trusting the payload (regression)', () => {
+    const result = normalizeGeneralLpoData({
+      status: 'TOTALLY-BOGUS',
+      discountType: 'weird',
+      taxType: 42,
+      includeSignature: 'no',
+      currency: 'FAKE',
+    });
+    expect(result.status).toBe('Draft');
+    expect(result.discountType).toBe('flat');
+    expect(result.taxType).toBe('percentage');
+    // Deterministic JS truthiness: any non-empty string coerces to true;
+    // only ''/0/null/undefined/false become false.
+    expect(result.includeSignature).toBe(true);
+    expect(normalizeGeneralLpoData({ includeSignature: '' }).includeSignature).toBe(false);
+    expect(normalizeGeneralLpoData({}).includeSignature).toBe(true); // base default
+    expect(result.currency).toBe('USD');
   });
 });
 
@@ -295,6 +331,15 @@ describe('normalizeGeneralInvoiceData', () => {
     expect(result.recurring.nextDate).toBe('2026-09-01');
   });
 
+  it('defaults recurring frequency so the Select never shows a phantom option (regression)', () => {
+    const result = normalizeGeneralInvoiceData({ recurring: { enabled: true } });
+    expect(result.recurring.frequency).toBe('monthly');
+
+    // Garbage frequency falls back to a valid option too
+    const garbage = normalizeGeneralInvoiceData({ recurring: { frequency: 'fortnightly' } });
+    expect(garbage.recurring.frequency).toBe('monthly');
+  });
+
   it('recomputes per-item totals including tax minus discount', () => {
     const result = normalizeGeneralInvoiceData({
       items: [{ quantity: 2, unitPrice: 100, taxRate: 10, discount: 25 }],
@@ -309,5 +354,23 @@ describe('normalizeGeneralInvoiceData', () => {
     });
     expect(result.items[0].taxRate).toBe(100);
     expect(result.items[0].discount).toBe(0);
+  });
+
+  it('coerces tax-mode enums, status and booleans defensively (regression)', () => {
+    const result = normalizeGeneralInvoiceData({
+      usePerItemTax: 'yes',
+      globalTaxType: 'bogus',
+      discountType: 7,
+      status: 'HACKED',
+      currency: '??',
+      showSignature: 1,
+    });
+    // Truthy strings coerce to real booleans
+    expect(result.usePerItemTax).toBe(true);
+    expect(result.globalTaxType).toBe('percentage');
+    expect(result.discountType).toBe('flat');
+    expect(result.status).toBe('Draft');
+    expect(result.currency).toBe('USD');
+    expect(result.showSignature).toBe(true);
   });
 });

@@ -12,6 +12,7 @@ import {
   CHARGE_CATEGORIES, PAYMENT_METHODS, HOTEL_INVOICE_CURRENCIES, 
   HotelGuestInfo 
 } from '../../types/hotelInvoice';
+import { generateId } from '../../services/dataUtils';
 
 interface Props {
   data: HotelInvoiceData;
@@ -39,7 +40,7 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
   // Line items
   const addLineItem = () => {
     const newItem: InvoiceLineItem = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: generateId(),
       category: 'Room',
       description: '',
       quantity: 1,
@@ -71,7 +72,7 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
   // Payments
   const addPayment = () => {
     const newPayment: PaymentRecord = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: generateId(),
       method: 'Credit Card',
       amount: 0,
       date: new Date().toISOString().split('T')[0],

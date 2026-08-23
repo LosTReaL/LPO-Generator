@@ -94,10 +94,12 @@ describe('GeneralLPOForm', () => {
     expect(String(calledDataQty.items[0].quantity)).toBe('5');
     expect(calledDataQty.items[0].total).toBe(50); // 5 * 10
     
-    // Test empty quantity
+    // Test empty quantity — the input declares min={1}, so clearing it
+    // clamps to the declared minimum instead of leaking a forbidden 0.
     fireEvent.change(qtyInput, { target: { value: '' } });
     const calledDataQtyEmpty = mockOnChange.mock.calls[2][0];
-    expect(calledDataQtyEmpty.items[0].total).toBe(0);
+    expect(calledDataQtyEmpty.items[0].quantity).toBe(1);
+    expect(calledDataQtyEmpty.items[0].total).toBe(10);
 
     // Update unitPrice
     const priceInput = screen.getByDisplayValue('10');

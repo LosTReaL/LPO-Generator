@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { GeneralInvoiceData, InvoiceItem, GenPaymentRecord, CreditNote, GEN_INVOICE_CURRENCIES, GeneralInvoiceStatus } from '../../types/generalInvoice';
 import { Section, Label, Input, Select, TextArea, Checkbox, StatusBadge } from '../shared/SharedUI';
+import { generateId } from '../../services/dataUtils';
 
 interface Props {
   data: GeneralInvoiceData;
@@ -28,7 +29,7 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
   // Items
   const addItem = () => {
     const newItem: InvoiceItem = {
-      id: Date.now().toString(),
+      id: generateId(),
       description: '',
       quantity: 1,
       unitPrice: 0,
@@ -61,7 +62,7 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
   // Payments
   const addPayment = () => {
     const newPayment: GenPaymentRecord = {
-      id: Date.now().toString(),
+      id: generateId(),
       method: 'Bank Transfer',
       amount: 0,
       date: new Date().toISOString().split('T')[0],
@@ -85,7 +86,7 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
   // Credit Notes
   const addCreditNote = () => {
     const newCreditNote: CreditNote = {
-      id: Date.now().toString(),
+      id: generateId(),
       amount: 0,
       reason: '',
       date: new Date().toISOString().split('T')[0],

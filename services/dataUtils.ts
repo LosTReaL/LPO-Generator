@@ -8,6 +8,7 @@
 // ============================================================
 
 import { INITIAL_LPO_DATA, LPOData } from '../types';
+import { GLOBAL_CURRENCIES } from '../types/currencies';
 import { INITIAL_GENERAL_LPO, GeneralLPOData } from '../types/generalLpo';
 import { INITIAL_HOTEL_INVOICE, HotelInvoiceData } from '../types/hotelInvoice';
 import { INITIAL_GENERAL_INVOICE, GeneralInvoiceData } from '../types/generalInvoice';
@@ -88,6 +89,16 @@ export const parseStoredDate = (value: unknown): Date | null => {
 export const sanitizeDateString = (value: unknown): string =>
   typeof value === 'string' && DATE_ONLY_RE.test(value) ? value : '';
 
+/** Keep only known ISO codes; anything else falls back to the module default. */
+export const sanitizeCurrency = (value: unknown, fallback: string): string => {
+  const code = sanitizeText(value, 8).toUpperCase();
+  return (GLOBAL_CURRENCIES as string[]).includes(code) ? code : fallback;
+};
+
+/** Whitelist helper for enum-ish string fields ('percentage' | 'flat', statuses…). */
+const oneOf = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T =>
+  allowed.includes(value as T) ? (value as T) : fallback;
+
 export interface ImportResult<T> {
   ok: boolean;
   data?: T;
@@ -155,12 +166,12 @@ export const normalizeHotelLpoData = (rawInput: unknown): LPOData => {
     .map((r) => {
       const start = parseStoredDate(r?.start);
       const end = parseStoredDate(r?.end);
-      if (!start || !end) return null;
+      if (!start || !end || end <= start) return null;
       return {
         id: sanitizeText(r?.id) || generateId(),
         start,
         end,
-        nights: toFiniteNumber(r?.nights, Math.max(0, Math.round((end.getTime() - start.getTime()) / 86_400_000)), 0),
+        nights: toFiniteNumber(r?.nights, Math.max(0, Math.round((end.getTime() - start.getTime()) / 86_400_000)), 1),
       };
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);
@@ -233,7 +244,7 @@ export const normalizeHotelLpoData = (rawInput: unknown): LPOData => {
     generalRemarks: sanitizeText(merged.generalRemarks),
     guestPhone: sanitizeText(merged.guestPhone),
     guestEmail: sanitizeText(merged.guestEmail),
-    currency: sanitizeText(merged.currency) || base.currency,
+    currency: sanitizeCurrency(merged.currency, base.currency),
     adultCount: toFiniteNumber(merged.adultCount, base.adultCount, 0, 999),
     infantCount: toFiniteNumber(merged.infantCount, base.infantCount, 0, 999),
     childCount,
@@ -297,7 +308,15 @@ export const normalizeGeneralLpoData = (rawInput: unknown): GeneralLPOData => {
       address: sanitizeText(supplierInfo.address),
     },
     items,
-    currency: sanitizeText(input.currency) || base.currency || 'USD',
+    currency: sanitizeCurrency(input.currency, base.currency || 'USD'),
+    discountType: oneOf(input.discountType, ['flat', 'percentage'] as const, 'flat'),
+    taxType: oneOf(input.taxType, ['percentage', 'flat'] as const, 'percentage'),
+    status: oneOf(
+      input.status,
+      ['Draft', 'Pending Approval', 'Approved', 'Sent to Supplier', 'Partially Received', 'Completed', 'Cancelled'] as const,
+      'Draft',
+    ),
+    includeSignature: input.includeSignature === undefined ? base.includeSignature === true : Boolean(input.includeSignature),
     discountValue: toFiniteNumber(input.discountValue, 0, 0),
     taxRate: toFiniteNumber(input.taxRate, 0, 0),
     taxLabel: sanitizeText(input.taxLabel) || 'VAT',
@@ -372,10 +391,14 @@ export const normalizeHotelInvoiceData = (rawInput: unknown): HotelInvoiceData =
     discountType: input.discountType === 'percentage' ? 'percentage' : 'flat',
     discountValue: toFiniteNumber(input.discountValue, 0, 0),
     discountLabel: sanitizeText(input.discountLabel) || base.discountLabel,
-    status: sanitizeText(input.status) || 'Draft',
+    status: oneOf(
+      input.status,
+      ['Draft', 'Sent', 'Paid', 'Partially Paid', 'Overdue', 'Cancelled'] as const,
+      'Draft',
+    ),
     invoiceDate: sanitizeDateString(input.invoiceDate),
     dueDate: sanitizeDateString(input.dueDate),
-    currency: sanitizeText(input.currency) || base.currency,
+    currency: sanitizeCurrency(input.currency, base.currency),
     invoiceNumber: sanitizeText(input.invoiceNumber),
     manualInvoiceNumber: Boolean(input.manualInvoiceNumber),
     notes: sanitizeText(input.notes),
@@ -440,21 +463,35 @@ export const normalizeGeneralInvoiceData = (rawInput: unknown): GeneralInvoiceDa
     creditNotes,
     recurring: {
       enabled: Boolean(recurring.enabled),
-      frequency: sanitizeText(recurring.frequency),
+      // Whitelist against the Select's options so the displayed value can
+      // never diverge from state.
+      frequency: oneOf(
+        recurring.frequency,
+        ['weekly', 'monthly', 'quarterly', 'yearly'] as const,
+        'monthly',
+      ),
       nextDate: sanitizeDateString(recurring.nextDate),
     },
     manualInvoiceNumber: Boolean(input.manualInvoiceNumber),
     invoiceNumber: sanitizeText(input.invoiceNumber),
     invoiceDate: sanitizeDateString(input.invoiceDate),
     dueDate: sanitizeDateString(input.dueDate),
-    status: sanitizeText(input.status) || 'Draft',
+    status: oneOf(
+      input.status,
+      ['Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled', 'Partially Paid'] as const,
+      'Draft',
+    ),
+    showSignature: input.showSignature === undefined ? undefined : Boolean(input.showSignature),
     signatureName: sanitizeText(input.signatureName),
     notes: sanitizeText(input.notes),
     termsAndConditions: sanitizeText(input.termsAndConditions),
-    currency: sanitizeText(input.currency) || base.currency,
+    currency: sanitizeCurrency(input.currency, base.currency),
     shippingCharges: toFiniteNumber(input.shippingCharges, 0, 0),
+    usePerItemTax: Boolean(input.usePerItemTax),
+    globalTaxType: oneOf(input.globalTaxType, ['percentage', 'flat'] as const, 'percentage'),
     globalTaxRate: toFiniteNumber(input.globalTaxRate, 0, 0),
     globalTaxLabel: sanitizeText(input.globalTaxLabel) || base.globalTaxLabel,
+    discountType: oneOf(input.discountType, ['flat', 'percentage'] as const, 'flat'),
     discountValue: toFiniteNumber(input.discountValue, 0, 0),
     watermarkText: sanitizeText(input.watermarkText),
   } as GeneralInvoiceData;

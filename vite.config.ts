@@ -1,5 +1,5 @@
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -15,6 +15,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
+        id: '/Ordris/',
         name: 'Ordris App',
         short_name: 'Ordris',
         description: 'AI-Orchestrated Professional Invoicing & LPO System',
@@ -41,7 +42,6 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
   },
-  // @ts-ignore
   test: {
     globals: true,
     environment: 'jsdom',

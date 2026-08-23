@@ -145,4 +145,50 @@ describe('generalInvoicePdfService', () => {
     generateGeneralInvoicePDF(data);
     expect(pdfUtils.drawWatermark).not.toHaveBeenCalled();
   });
+
+  /** The mocked jsPDF constructor (vi.fn) — typed loosely for call assertions. */
+  const docMock = (): any => jsPDF as unknown as any;
+
+  it('applies bold styling before drawing the Grand Total row (regression)', () => {
+    const data = getBaseData();
+    generateGeneralInvoicePDF(data);
+
+    const doc = docMock().mock.results[0].value;
+    const fontCalls = doc.setFont.mock.calls.map((c: any[]) => c.join('|'));
+    const textCalls = doc.text.mock.calls.map((c: any[]) => String(c[0]));
+    const grandTotalTextIdx = textCalls.indexOf('Grand Total:');
+    expect(grandTotalTextIdx).toBeGreaterThan(-1);
+
+    // The setFont('helvetica','bold') that styles the final row must happen
+    // BEFORE the Grand Total label is drawn, never after.
+    const boldBeforeIdx = fontCalls.findIndex((f: string) => f === 'helvetica|bold');
+    expect(boldBeforeIdx).toBeGreaterThan(-1);
+    const boldCallNumber = doc.setFont.mock.invocationCallOrder[boldBeforeIdx];
+    const grandTextCallNumber = doc.text.mock.invocationCallOrder[grandTotalTextIdx];
+    expect(grandTextCallNumber).toBeGreaterThan(boldCallNumber);
+  });
+
+  it('renders per-item totals from the ACTIVE tax mode, ignoring stale stored totals', () => {
+    const data = getBaseData(); // usePerItemTax: true, qty 2 × 50, tax 10%, discount 5
+    generateGeneralInvoicePDF(data);
+
+    const doc = docMock().mock.results[0].value;
+    // gross 100 + 10% tax - 5 discount = 105 -> "USD 105.00"
+    expect(
+      doc.text.mock.calls.some((c: any[]) => String(c[0]) === 'USD 105.00')
+    ).toBe(true);
+  });
+
+  it('excludes per-item tax from displayed totals when global tax mode is on', () => {
+    const data = { ...getBaseData(), usePerItemTax: false }; // qty 2 × 50 - 5 discount
+    generateGeneralInvoicePDF(data);
+
+    const doc = docMock().mock.results[0].value;
+    expect(
+      doc.text.mock.calls.some((c: any[]) => String(c[0]) === 'USD 95.00')
+    ).toBe(true);
+    expect(
+      doc.text.mock.calls.some((c: any[]) => String(c[0]) === 'USD 105.00')
+    ).toBe(false);
+  });
 });

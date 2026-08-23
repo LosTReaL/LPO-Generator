@@ -130,3 +130,56 @@ test('mobile viewport exposes the floating action button; desktop hides it', asy
     expect(fabVisible).toBeFalsy();
   }
 });
+
+test('general LPO end-to-end: supplier order flows to a real PDF download and persists', async ({ page }) => {
+  test.setTimeout(45_000);
+  await page.goto('/');
+  await openModule(page, 'General LPO');
+
+  await page.getByPlaceholder('Enter company name').fill('E2E Buyer Co');
+  await page.getByPlaceholder('Enter supplier name').fill('E2E Supplier');
+  await page.getByRole('button', { name: /add item/i }).click();
+  await page.getByPlaceholder('Item description').fill('Office chairs');
+  const qty = page.locator('.items-table tbody input[type="number"]').first();
+  await qty.fill('4');
+
+  // Persistence is debounced (~1s) — wait until it has actually been written
+  await page.waitForFunction(() =>
+    (localStorage.getItem('ordris_general_lpo_v1') ?? '').includes('E2E Supplier'),
+    { timeout: 5_000 },
+  );
+
+  const downloadPromise = page.waitForEvent('download', { timeout: 15_000 });
+  await page.getByTitle('Generate PDF').first().click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^LPO_PO-\d{8}-[A-Z0-9]{6}_e2e_supplier\.pdf$/);
+  await expect(page.getByText(/PDF generated successfully/i)).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByPlaceholder('Enter company name')).toHaveValue('E2E Buyer Co');
+});
+
+test('hotel invoice end-to-end: charges flow to a real folio PDF download', async ({ page }) => {
+  await page.goto('/');
+  await openModule(page, 'Hotel Invoice');
+
+  await page.getByPlaceholder(/e\.g\. The Grand Continental/i).fill('E2E Seaside Hotel');
+  await page.getByPlaceholder(/John Doe/i).fill('E2E Guest');
+  await page.getByRole('button', { name: /add charge/i }).click();
+
+  // Empty state disappears once a charge row exists
+  await expect(page.getByText(/No charges recorded/i)).toHaveCount(0);
+
+  const downloadPromise = page.waitForEvent('download', { timeout: 15_000 });
+  await page.getByTitle('Generate PDF').first().click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^Invoice_.+\.pdf$/);
+  await expect(page.getByText(/PDF generated successfully/i)).toBeVisible();
+
+  // Regression: success toasts must render with the emerald accent
+  // (--emerald-500 was referenced but never defined, silently breaking color)
+  const borderColor = await page
+    .locator('.toast--success')
+    .evaluate((el) => getComputedStyle(el).borderLeftColor);
+  expect(borderColor).toBe('rgb(16, 185, 129)');
+});

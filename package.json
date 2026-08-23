@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "homepage": "https://github.com/ordris/Ordris",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -113,6 +113,14 @@ If you are actively developing and want the test suite to watch your files and i
 npm run test:watch
 ```
 
+### 🎭 End-to-End Tests (Playwright)
+Real-browser journeys (including genuine PDF downloads) run against the production preview build in desktop and mobile viewports:
+```bash
+npm run e2e           # builds, serves dist/, runs Chromium suites
+npm run e2e:headed    # same with a visible browser
+```
+Requires a one-time `npx playwright install chromium`.
+
 ### 🛡️ Running Type Safety Checks
 To verify TypeScript type safety across all components and modules without running the actual test assertions:
 ```bash
@@ -165,28 +173,33 @@ Ordris/
 ├── components/
 │   ├── shared/
 │   │   ├── SharedUI.tsx          # Reusable design system primitives
-│   │   └── SharedUI.test.tsx     # Shared UI component tests
+│   │   ├── ToastContext.tsx      # Toast notification system
+│   │   ├── ErrorBoundary.tsx     # Global error boundary
+│   │   └── SharedUI.test.tsx
 │   ├── generalLpo/               # General LPO form & module components
 │   ├── hotelInvoice/             # Hotel Invoice form & module components
 │   ├── generalInvoice/           # General Invoice form & module components
 │   ├── ModeSelectorPage.tsx      # Landing page & mode selection grid
-│   ├── HotelLPOModule.tsx        # Preserved Hotel LPO module
+│   ├── HotelLPOModule.tsx        # Hotel LPO module container
 │   ├── LPOForm.tsx               # Hotel LPO form component
 │   └── DateManager.tsx           # Multi-stay date calendar picker
 ├── services/
-│   ├── pdfUtils.ts               # Shared PDF & math utilities
-│   ├── pdfUtils.test.ts          # Unit tests for PDF utilities
+│   ├── pdfUtils.ts               # Shared PDF utilities & helpers
+│   ├── dataUtils.ts              # Import validation / defensive normalizers
 │   ├── generalLpoPdfService.ts   # General LPO PDF generator
 │   ├── hotelInvoicePdfService.ts # Hotel Invoice PDF generator
 │   ├── generalInvoicePdfService.ts# General Invoice PDF generator
-│   └── pdfService.ts             # Hotel LPO PDF generator
-├── src/test/
-│   └── setup.ts                  # Vitest & jest-dom global setup
+│   ├── pdfService.ts             # Hotel LPO PDF generator
+│   └── realPdfOutput.test.ts     # Byte-level PDF tests (real jsPDF)
+├── e2e/app.spec.ts               # Playwright journeys (desktop + mobile)
+├── playwright.config.ts          # E2E config vs production preview
+├── public/icon.svg               # PWA icon / favicon
+├── src/test/setup.ts             # Vitest global browser-API mocks
 ├── types/                        # TypeScript interface definitions
 ├── index.css                     # Vanilla CSS design system tokens & rules
 ├── App.tsx                       # Hash-based dynamic module router
 ├── App.test.tsx                  # App integration & routing tests
-├── vite.config.ts                # Vite bundler & Vitest test config
+├── vite.config.ts                # Vite bundler, PWA & Vitest config
 └── package.json                  # Dependencies & npm scripts
 ```
 
@@ -194,9 +207,9 @@ Ordris/
 
 ## 🛠️ Tech Stack
 
-- **Framework**: React 18 + TypeScript 5
+- **Framework**: React 18 + TypeScript 5 (strict mode)
 - **Build Tool**: Vite 6
-- **Test Framework**: Vitest 3 + React Testing Library + jsdom
+- **Test Framework**: Vitest 3 + React Testing Library + jsdom · Playwright E2E
 - **PDF Generation**: jsPDF + jspdf-autotable
 - **Icons**: Lucide React
 - **Date Handling**: date-fns 4

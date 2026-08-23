@@ -38,6 +38,36 @@ describe('SharedUI Components', () => {
     expect(handleChange).toHaveBeenCalledWith('New Value');
   });
 
+  it('clamps pasted/out-of-range numbers to min/max instead of trusting raw input (regression)', () => {
+    const handleChange = vi.fn();
+    const { rerender } = render(
+      <Input type="number" value={5} min={0} max={100} onChange={handleChange} placeholder="qty" />
+    );
+    const el = screen.getByPlaceholderText('qty');
+
+    // Paste-style injection of a negative value (keydown blocking can't catch this)
+    fireEvent.change(el, { target: { value: '-25' } });
+    expect(handleChange).toHaveBeenLastCalledWith(0);
+
+    fireEvent.change(el, { target: { value: '500' } });
+    expect(handleChange).toHaveBeenLastCalledWith(100);
+
+    fireEvent.change(el, { target: { value: '42' } });
+    expect(handleChange).toHaveBeenLastCalledWith(42);
+
+    // Non-numeric garbage must not poison state with NaN
+    fireEvent.change(el, { target: { value: 'abc' } });
+    expect(handleChange).toHaveBeenLastCalledWith(0);
+
+    // No min/max declared -> only the NaN guard applies
+    rerender(<Input type="number" value={5} onChange={handleChange} placeholder="free" />);
+    const freeEl = screen.getByPlaceholderText('free');
+    fireEvent.change(freeEl, { target: { value: 'abc' } });
+    expect(handleChange).toHaveBeenLastCalledWith(0);
+    fireEvent.change(freeEl, { target: { value: '-7' } });
+    expect(handleChange).toHaveBeenLastCalledWith(-7); // unconstrained field keeps sign
+  });
+
   it('renders number Input and handles keydown', () => {
     const handleChange = vi.fn();
     render(<Input type="number" value={10} min={0} onChange={handleChange} placeholder="Enter age" />);

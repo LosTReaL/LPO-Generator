@@ -55,7 +55,11 @@ const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
 
   const handleAddRateRange = (start: Date, end: Date) => {
     const numericRate = parseFloat(newRateAmount);
-    if (!newRateAmount || isNaN(numericRate) || numericRate <= 0) return;
+    if (!newRateAmount.trim() || isNaN(numericRate) || numericRate <= 0) {
+      // Silent returns here used to look like a dead button — always explain.
+      addToast('Enter a rate amount greater than zero first.', 'warning');
+      return;
+    }
 
     const newStart = startOfDay(start);
     const newEnd = startOfDay(end);

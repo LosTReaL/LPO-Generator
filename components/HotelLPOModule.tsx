@@ -116,14 +116,14 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
     }
 
     const { stayRanges, applicableRates } = lpoData;
-    const missingRateDates: string[] = [];
+    const missingRateDates: Date[] = [];
 
     for (const stay of stayRanges) {
       if (stay.start >= stay.end) continue;
-      
+
       try {
         const nights = eachDayOfInterval({ start: stay.start, end: subDays(stay.end, 1) });
-        
+
         for (const nightDate of nights) {
           const hasRate = applicableRates.some(rate => {
             const rStart = startOfDay(rate.start);
@@ -133,7 +133,7 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
           });
 
           if (!hasRate) {
-            missingRateDates.push(format(nightDate, 'dd MMM yyyy'));
+            missingRateDates.push(nightDate);
           }
         }
       } catch (e) {
@@ -142,8 +142,13 @@ const HotelLPOModule: React.FC<HotelLPOModuleProps> = ({ onNavigateHome }) => {
     }
 
     if (missingRateDates.length > 0) {
-      const uniqueDates = Array.from(new Set(missingRateDates)).sort((a,b) => new Date(a).getTime() - new Date(b).getTime());
-      const displayDates = uniqueDates.slice(0, 5);
+      // Sort actual Date objects — reparsing formatted strings would be
+      // locale/engine dependent.
+      const uniqueDates = Array.from(
+        new Map(missingRateDates.map(d => [startOfDay(d).getTime(), startOfDay(d)]))
+          .values()
+      ).sort((a, b) => a.getTime() - b.getTime());
+      const displayDates = uniqueDates.slice(0, 5).map(d => format(d, 'dd MMM yyyy'));
       const remaining = uniqueDates.length - 5;
       warnings.push(
         `Missing rates for: ${displayDates.join(", ")}${remaining > 0 ? ` ...and ${remaining} more` : ''}.`

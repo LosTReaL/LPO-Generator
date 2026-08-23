@@ -163,29 +163,31 @@ const DateManager: React.FC<DateManagerProps> = ({
         
         {/* Navigation Header */}
         <div className="calendar-nav">
-          <button onClick={prevMonth} className="calendar-nav-btn">
+          <button onClick={prevMonth} className="calendar-nav-btn" aria-label="Previous month">
             <ChevronLeft size={20} />
           </button>
-          
+
           <div className="flex-row gap-2">
-            <select 
-              value={getMonth(currentMonth)} 
+            <select
+              value={getMonth(currentMonth)}
               onChange={handleMonthSelect}
               className="calendar-month-select"
+              aria-label="Select month"
             >
               {MONTHS.map((m, i) => (
                 <option key={m} value={i}>{m}</option>
               ))}
             </select>
-            <input 
+            <input
               type="number"
               value={yearInput}
               onChange={handleYearChange}
               className="calendar-year-input"
+              aria-label="Year"
             />
           </div>
 
-          <button onClick={nextMonth} className="calendar-nav-btn">
+          <button onClick={nextMonth} className="calendar-nav-btn" aria-label="Next month">
             <ChevronRight size={20} />
           </button>
         </div>
@@ -228,6 +230,8 @@ const DateManager: React.FC<DateManagerProps> = ({
                 key={format(date, 'yyyy-MM-dd')}
                 onClick={() => handleDateClick(date)}
                 className={classNames}
+                aria-label={format(date, 'EEEE, d MMMM yyyy')}
+                aria-pressed={selected}
               >
                 {format(date, 'd')}
               </button>

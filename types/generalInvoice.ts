@@ -75,7 +75,7 @@ export const INITIAL_GENERAL_INVOICE: GeneralInvoiceData = {
   items: [],
   payments: [],
   creditNotes: [],
-  recurring: { enabled: false },
+  recurring: { enabled: false, frequency: 'monthly' },
   manualInvoiceNumber: false,
   invoiceNumber: '',
   status: 'Draft',

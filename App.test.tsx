@@ -80,4 +80,13 @@ describe('App Router Integration', () => {
     render(<App />);
     expect(screen.getByText('Ordris')).toBeInTheDocument();
   });
+
+  it('routes correctly when the hash has a trailing slash (regression)', async () => {
+    render(<App />);
+    act(() => {
+      window.location.hash = '#/hotel-lpo/';
+      window.dispatchEvent(new Event('hashchange'));
+    });
+    await waitFor(() => expect(screen.getByText('Home')).toBeInTheDocument());
+  });
 });

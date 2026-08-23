@@ -51,8 +51,12 @@ export const getAmountInWords = (amount: number, currency: string): string => {
 
   amount = Math.round(amount * 100) / 100;
 
-  const integerPart = Math.floor(amount);
-  const decimalPart = Math.round((amount - integerPart) * 100);
+  // Split on the absolute value: Math.floor would otherwise shift the
+  // integer part down by one for negatives (e.g. -50.50 -> "-51 and 50").
+  const sign = amount < 0 ? 'Minus ' : '';
+  const absAmount = Math.abs(amount);
+  const integerPart = Math.floor(absAmount);
+  const decimalPart = Math.round((absAmount - integerPart) * 100);
 
   let text = '';
 
@@ -66,7 +70,7 @@ export const getAmountInWords = (amount: number, currency: string): string => {
     text += ' and ' + numToWords(decimalPart) + ' ' + (decimalPart === 1 ? config.minor : config.minorPlural);
   }
 
-  return text + ' Only';
+  return sign + text + ' Only';
 };
 
 export const generateDocNumber = (prefix: string = 'PO'): string => {
