@@ -8,7 +8,7 @@
 
 - 🏨 **Hotel LPO (Local Purchase Order)** — Generate purchase orders for hotel accommodations featuring multi-stay date ranges, seasonal rate rules, guest/occupancy breakdowns, and PDF exports.
 - 📦 **General LPO** — Create purchase orders for standard business procurement with supplier management, line item tables, approval workflows, delivery tracking, and PO PDF generation.
-- 🧾 **Hotel Invoice** — Issue guest invoices with categorized charges (*Room, F&B, Spa, Laundry, Transport, Events*), stay details, payment records, and folio invoice PDFs.
+- 🧾 **Hotel Invoice** — Issue guest invoices with categorized charges (*Room, F&B, Spa, Laundry, Mini Bar*), stay details, payment records, and folio invoice PDFs.
 - 📄 **General Invoice** — Build customer invoices with global or per-item tax support, payment tracking, credit notes, recurring settings, and invoice PDFs.
 
 ---

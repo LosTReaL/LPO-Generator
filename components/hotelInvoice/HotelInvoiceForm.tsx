@@ -7,6 +7,7 @@ import {
   Section, SubSection, Label, Input, Select, 
   TextArea, Checkbox, StatusBadge 
 } from '../shared/SharedUI';
+import { useToast } from '../shared/ToastContext';
 import { 
   HotelInvoiceData, InvoiceLineItem, PaymentRecord, 
   CHARGE_CATEGORIES, PAYMENT_METHODS, HOTEL_INVOICE_CURRENCIES, 
@@ -20,14 +21,30 @@ interface Props {
 }
 
 export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
-  
+  const { addToast } = useToast();
+
   // Handlers for primitive arrays
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Same limits as the Hotel LPO module: oversized images would blow the
+      // localStorage quota on the next save and bloat every generated PDF.
+      if (!file.type.startsWith('image/')) {
+        addToast('Please select an image file.', 'error');
+        e.target.value = '';
+        return;
+      }
+      if (file.size > 500 * 1024) {
+        addToast('File size too large. Please select an image under 500KB.', 'error');
+        e.target.value = '';
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         onChange({ hotelLogo: reader.result as string, showLogo: true });
+      };
+      reader.onerror = () => {
+        addToast('Failed to read the selected image.', 'error');
       };
       reader.readAsDataURL(file);
     }
@@ -189,11 +206,11 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
           <div className="form-grid-3">
             <div>
               <Label>Check-In Date</Label>
-              <input type="date" className="input-field" value={data.checkInDate} onChange={(e) => onChange({ checkInDate: e.target.value })} />
+              <input type="date" className="input-field" value={data.checkInDate ?? ''} onChange={(e) => onChange({ checkInDate: e.target.value })} />
             </div>
             <div>
               <Label>Check-Out Date</Label>
-              <input type="date" className="input-field" value={data.checkOutDate} onChange={(e) => onChange({ checkOutDate: e.target.value })} />
+              <input type="date" className="input-field" value={data.checkOutDate ?? ''} onChange={(e) => onChange({ checkOutDate: e.target.value })} />
             </div>
             <div>
               <Label>Folio / Reg No.</Label>
@@ -283,7 +300,7 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
                       {item.amount.toFixed(2)}
                     </td>
                     <td>
-                      <button className="btn-icon" onClick={() => removePayment(item.id)} aria-label="Remove payment">
+                      <button className="btn-icon" onClick={() => removeLineItem(item.id)} aria-label="Remove charge">
                         <Trash2 size={14} className="text-danger" />
                       </button>
                     </td>
@@ -358,7 +375,7 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
                       />
                     </td>
                     <td>
-                      <button className="btn-icon" onClick={() => removeLineItem(item.id)} aria-label="Remove charge">
+                      <button className="btn-icon" onClick={() => removePayment(item.id)} aria-label="Remove payment">
                         <Trash2 size={14} className="text-danger" />
                       </button>
                     </td>
@@ -379,11 +396,11 @@ export const HotelInvoiceForm: React.FC<Props> = ({ data, onChange }) => {
           <div className="form-grid-3">
             <div>
               <Label>Invoice Date</Label>
-              <input type="date" className="input-field" value={data.invoiceDate} onChange={(e) => onChange({ invoiceDate: e.target.value })} />
+              <input type="date" className="input-field" value={data.invoiceDate ?? ''} onChange={(e) => onChange({ invoiceDate: e.target.value })} />
             </div>
             <div>
               <Label>Due Date</Label>
-              <input type="date" className="input-field" value={data.dueDate} onChange={(e) => onChange({ dueDate: e.target.value })} />
+              <input type="date" className="input-field" value={data.dueDate ?? ''} onChange={(e) => onChange({ dueDate: e.target.value })} />
             </div>
             <div>
               <Label>Currency</Label>

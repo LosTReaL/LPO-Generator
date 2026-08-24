@@ -203,4 +203,53 @@ describe('generalLpoPdfService', () => {
       expect(() => generateGeneralLPOPDF(data)).not.toThrow();
     });
   });
+
+  it('moves summary/notes to a new page when the items table ends near the bottom (regression)', async () => {
+    // Regression: the financial summary used to be drawn at fixed offsets
+    // from the table end, landing past the bottom edge when the items
+    // table filled the page.
+    const { default: jsPDF } = await import('jspdf');
+    const pageHeight = 297;
+    const localText = vi.fn();
+    const localSplit = vi.fn().mockImplementation((text) => [text]);
+    const localAddPage = vi.fn();
+    vi.mocked(jsPDF).mockImplementationOnce(() => ({
+      save: mockSave,
+      text: localText,
+      addPage: localAddPage,
+      setFontSize: mockSetFontSize,
+      setFont: mockSetFont,
+      setTextColor: mockSetTextColor,
+      splitTextToSize: localSplit,
+      setDrawColor: mockSetDrawColor,
+      line: mockLine,
+      setLineWidth: mockSetLineWidth,
+      internal: { pageSize: { width: 210, height: pageHeight } },
+      lastAutoTable: { finalY: 285 }, // items table "ends" 12mm above the edge
+    } as any));
+
+    const data: GeneralLPOData = {
+      companyInfo: { name: 'Acme Corp' },
+      items: [{ id: '1', description: 'Item', quantity: 2, unit: 'pcs', unitPrice: 50, total: 100 }],
+      taxRate: 5,
+      notes: 'Some notes',
+      termsAndConditions: 'T&C apply',
+      includeSignature: true,
+    };
+
+    expect(() => generateGeneralLPOPDF(data)).not.toThrow();
+
+    // A break must be inserted before the summary block…
+    expect(localAddPage).toHaveBeenCalled();
+    // …and 'Grand Total:' must still be rendered within the printable area.
+    const grandCalls = localText.mock.calls.filter((c: any[]) => c[0] === 'Grand Total:');
+    expect(grandCalls.length).toBe(1);
+    for (const call of localText.mock.calls) {
+      const y = call[2];
+      if (typeof y === 'number') {
+        expect(y).toBeLessThanOrEqual(pageHeight - 10);
+        expect(y).toBeGreaterThan(0);
+      }
+    }
+  });
 });

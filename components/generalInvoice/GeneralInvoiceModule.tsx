@@ -10,6 +10,11 @@ import { useToast } from '../shared/ToastContext';
 const STORAGE_KEY = 'ordris_general_invoice_v1';
 const EXPIRY_DAYS = 7;
 
+// Factory instead of sharing the INITIAL_* constant by reference: a stray
+// in-place mutation would otherwise poison every future reset.
+const getInitialData = (): GeneralInvoiceData =>
+  JSON.parse(JSON.stringify(INITIAL_GENERAL_INVOICE)) as GeneralInvoiceData;
+
 interface Props {
   onNavigateHome: () => void;
 }
@@ -33,7 +38,7 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
     } catch (e) {
       console.error('Failed to load general invoice data from storage:', e);
     }
-    return INITIAL_GENERAL_INVOICE;
+    return getInitialData();
   });
 
   useEffect(() => {
@@ -50,19 +55,22 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset the invoice? All unsaved data will be lost.')) {
-      setData(INITIAL_GENERAL_INVOICE);
+      setData(getInitialData());
       addToast('Form has been reset.', 'info');
     }
   };
 
   const handleExportJSON = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `general_invoice_${data.invoiceNumber || 'draft'}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `general_invoice_${data.invoiceNumber || 'draft'}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     addToast('Data exported successfully.', 'success');
   };
 
@@ -87,11 +95,11 @@ export default function GeneralInvoiceModule({ onNavigateHome }: Props) {
 
   const handleGeneratePDF = () => {
     if (isGenerating) return;
-    if (!data.companyName) {
+    if (!data.companyName.trim()) {
       addToast('Company Name is required.', 'error');
       return;
     }
-    if (!data.customer.name) {
+    if (!data.customer.name.trim()) {
       addToast('Customer Name is required.', 'error');
       return;
     }

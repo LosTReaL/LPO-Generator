@@ -9,8 +9,8 @@
 
 import { INITIAL_LPO_DATA, LPOData } from '../types';
 import { GLOBAL_CURRENCIES } from '../types/currencies';
-import { INITIAL_GENERAL_LPO, GeneralLPOData } from '../types/generalLpo';
-import { INITIAL_HOTEL_INVOICE, HotelInvoiceData } from '../types/hotelInvoice';
+import { INITIAL_GENERAL_LPO, GeneralLPOData, UNIT_OPTIONS } from '../types/generalLpo';
+import { INITIAL_HOTEL_INVOICE, HotelInvoiceData, CHARGE_CATEGORIES, PAYMENT_METHODS } from '../types/hotelInvoice';
 import { INITIAL_GENERAL_INVOICE, GeneralInvoiceData } from '../types/generalInvoice';
 
 /** Hard ceiling for imported files (~2 MB) — larger payloads cannot be persisted anyway. */
@@ -20,6 +20,22 @@ export const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 export const MAX_TEXT_LENGTH = 10_000;
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Build a local Date from a regex-validated yyyy-MM-dd string, rejecting
+ * impossible calendar dates ('2026-02-31') instead of letting them roll
+ * over into March — which would corrupt stay schedules and crash
+ * date-fns formatters downstream.
+ */
+const dateFromValidParts = (value: string): Date | null => {
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+      ? date
+      : null
+  );
+};
 
 /**
  * Short random identifier used across forms/PDFs.
@@ -76,8 +92,7 @@ export const parseStoredDate = (value: unknown): Date | null => {
   if (value instanceof Date && !isNaN(value.getTime())) return value;
   if (typeof value === 'string') {
     if (DATE_ONLY_RE.test(value)) {
-      const [year, month, day] = value.split('-').map(Number);
-      return new Date(year, month - 1, day);
+      return dateFromValidParts(value);
     }
     const parsed = new Date(value);
     return isNaN(parsed.getTime()) ? null : parsed;
@@ -87,7 +102,9 @@ export const parseStoredDate = (value: unknown): Date | null => {
 
 /** Validate a yyyy-MM-dd string used by the invoice modules. */
 export const sanitizeDateString = (value: unknown): string =>
-  typeof value === 'string' && DATE_ONLY_RE.test(value) ? value : '';
+  typeof value === 'string' && DATE_ONLY_RE.test(value) && dateFromValidParts(value) !== null
+    ? value
+    : '';
 
 /** Keep only known ISO codes; anything else falls back to the module default. */
 export const sanitizeCurrency = (value: unknown, fallback: string): string => {
@@ -256,17 +273,27 @@ export const normalizeHotelLpoData = (rawInput: unknown): LPOData => {
   } as LPOData;
 };
 
-const normalizePayments = (raw: unknown) =>
+/**
+ * Payment methods must stay inside each module's own Select options or the
+ * dropdown renders blank while state keeps a divergent value. The allow
+ * list is therefore passed per module rather than shared.
+ */
+const GENERAL_INVOICE_PAYMENT_METHODS = ['Cash', 'Credit Card', 'Bank Transfer', 'Online Payment', 'Cheque', 'Other'];
+
+const normalizePayments = (raw: unknown, allowedMethods: string[]) =>
   ensureArray<Record<string, unknown>>(raw)
     .filter((p) => p && typeof p === 'object')
     .slice(0, 200)
-    .map((p) => ({
-      id: sanitizeText(p?.id) || generateId(),
-      method: sanitizeText(p?.method) || 'Other',
-      amount: toFiniteNumber(p?.amount, 0, 0),
-      date: sanitizeDateString(p?.date),
-      reference: sanitizeText(p?.reference),
-    }));
+    .map((p) => {
+      const method = sanitizeText(p?.method);
+      return {
+        id: sanitizeText(p?.id) || generateId(),
+        method: allowedMethods.includes(method) ? method : 'Other',
+        amount: toFiniteNumber(p?.amount, 0, 0),
+        date: sanitizeDateString(p?.date),
+        reference: sanitizeText(p?.reference),
+      };
+    });
 
 export const normalizeGeneralLpoData = (rawInput: unknown): GeneralLPOData => {
   const input = asRecord(rawInput);
@@ -280,11 +307,13 @@ export const normalizeGeneralLpoData = (rawInput: unknown): GeneralLPOData => {
     .map((item) => {
       const quantity = toFiniteNumber(item?.quantity, 1, 0);
       const unitPrice = toFiniteNumber(item?.unitPrice, 0, 0);
+      const unitRaw = sanitizeText(item?.unit);
       return {
         id: sanitizeText(item?.id) || generateId(),
         description: sanitizeText(item?.description),
         quantity,
-        unit: sanitizeText(item?.unit) || 'pcs',
+        // Must stay inside the Select's options or the dropdown shows blank
+        unit: UNIT_OPTIONS.includes(unitRaw) ? unitRaw : 'pcs',
         unitPrice,
         total: quantity * unitPrice,
       };
@@ -334,7 +363,6 @@ export const normalizeGeneralLpoData = (rawInput: unknown): GeneralLPOData => {
   } as GeneralLPOData;
 };
 
-const CHARGE_CATEGORIES_SAFE = ['Room', 'Food & Beverage', 'Spa', 'Laundry', 'Mini Bar', 'Other'];
 export const normalizeHotelInvoiceData = (rawInput: unknown): HotelInvoiceData => {
   const input = asRecord(rawInput);
   const base = JSON.parse(JSON.stringify(INITIAL_HOTEL_INVOICE)) as HotelInvoiceData;
@@ -348,7 +376,8 @@ export const normalizeHotelInvoiceData = (rawInput: unknown): HotelInvoiceData =
       const category = sanitizeText(item?.category);
       return {
         id: sanitizeText(item?.id) || generateId(),
-        category: CHARGE_CATEGORIES_SAFE.includes(category) ? category : 'Other',
+        // Single source of truth: the Select's own option list
+        category: CHARGE_CATEGORIES.includes(category) ? category : 'Other',
         description: sanitizeText(item?.description),
         quantity,
         rate,
@@ -381,7 +410,7 @@ export const normalizeHotelInvoiceData = (rawInput: unknown): HotelInvoiceData =
     roomNumber: sanitizeText(input.roomNumber),
     roomType: sanitizeText(input.roomType),
     lineItems,
-    payments: normalizePayments(input.payments),
+    payments: normalizePayments(input.payments, PAYMENT_METHODS),
     serviceChargeType: input.serviceChargeType === 'flat' ? 'flat' : 'percentage',
     serviceChargeRate: toFiniteNumber(input.serviceChargeRate, 0, 0),
     serviceChargeLabel: sanitizeText(input.serviceChargeLabel) || base.serviceChargeLabel,
@@ -459,7 +488,7 @@ export const normalizeGeneralInvoiceData = (rawInput: unknown): GeneralInvoiceDa
       phone: sanitizeText(customer.phone),
     },
     items,
-    payments: normalizePayments(input.payments),
+    payments: normalizePayments(input.payments, GENERAL_INVOICE_PAYMENT_METHODS),
     creditNotes,
     recurring: {
       enabled: Boolean(recurring.enabled),
@@ -481,7 +510,7 @@ export const normalizeGeneralInvoiceData = (rawInput: unknown): GeneralInvoiceDa
       ['Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled', 'Partially Paid'] as const,
       'Draft',
     ),
-    showSignature: input.showSignature === undefined ? undefined : Boolean(input.showSignature),
+    showSignature: Boolean(input.showSignature),
     signatureName: sanitizeText(input.signatureName),
     notes: sanitizeText(input.notes),
     termsAndConditions: sanitizeText(input.termsAndConditions),

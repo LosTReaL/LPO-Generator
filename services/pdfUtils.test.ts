@@ -27,6 +27,7 @@ describe('pdfUtils', () => {
     doc.setTextColor = vi.fn();
     doc.text = vi.fn();
     doc.splitTextToSize = vi.fn().mockImplementation((text) => [text]);
+    doc.getTextWidth = vi.fn().mockReturnValue(100);
     doc.addImage = vi.fn();
     doc.setDrawColor = vi.fn();
     doc.setLineWidth = vi.fn();
@@ -103,13 +104,18 @@ describe('pdfUtils', () => {
       expect(getAmountInWords(50.01, 'UNKNOWN')).toBe('Fifty UNKNOWN and One Subunit Only');
     });
 
-    it('handles negative amounts without off-by-one on the integer part (regression)', () => {
-      // Math.floor(-50.5) === -51 would have produced "Minus Fifty-One ... and Fifty Cents"
-      expect(getAmountInWords(-50.5, 'USD')).toBe('Minus Fifty Dollars and Fifty Cents Only');
-      expect(getAmountInWords(-1000, 'AED')).toBe('Minus One Thousand Dirhams Only');
-      expect(getAmountInWords(-0.05, 'USD')).toBe('Minus Zero Dollars and Five Cents Only');
-    });
+  it('handles negative amounts without off-by-one on the integer part (regression)', () => {
+    // Math.floor(-50.5) === -51 would have produced "Minus Fifty-One ... and Fifty Cents"
+    expect(getAmountInWords(-50.5, 'USD')).toBe('Minus Fifty Dollars and Fifty Cents Only');
+    expect(getAmountInWords(-1000, 'AED')).toBe('Minus One Thousand Dirhams Only');
+    expect(getAmountInWords(-0.05, 'USD')).toBe('Minus Zero Dollars and Five Cents Only');
   });
+
+  it('falls back to digits beyond the trillions instead of an empty words section (regression)', () => {
+    const result = getAmountInWords(2_500_000_000_000.5, 'USD');
+    expect(result).toBe('2,500,000,000,000 Dollars and Fifty Cents Only');
+  });
+});
 
   describe('generateDocNumber', () => {
     it('generates a formatted document number with default prefix', () => {
@@ -248,6 +254,16 @@ describe('pdfUtils', () => {
         angle: expect.any(Number)
       });
       expect(doc.restoreGraphicsState).toHaveBeenCalledTimes(2);
+    });
+
+    it('shrinks long watermarks so they stay inside the page (regression)', () => {
+      // A watermark wider than the page at 60pt used to bleed off both edges.
+      doc.getTextWidth.mockReturnValue(100_000);
+      drawWatermark(doc, 'THIS IS AN EXTREMELY LONG WATERMARK STRING');
+      const sizes = doc.setFontSize.mock.calls.map((c: any[]) => c[0]);
+      const applied = sizes[sizes.length - 1];
+      expect(applied).toBeLessThan(60);
+      expect(applied).toBeGreaterThanOrEqual(12); // never shrink to nothing
     });
   });
 });

@@ -15,12 +15,17 @@ interface StorageData {
   timestamp: number;
 }
 
+// Factory instead of sharing the INITIAL_* constant by reference: a stray
+// in-place mutation would otherwise poison every future reset.
+const getInitialData = (): HotelInvoiceData =>
+  JSON.parse(JSON.stringify(INITIAL_HOTEL_INVOICE)) as HotelInvoiceData;
+
 interface Props {
   onNavigateHome: () => void;
 }
 
 export default function HotelInvoiceModule({ onNavigateHome }: Props) {
-  const [data, setData] = useState<HotelInvoiceData>(INITIAL_HOTEL_INVOICE);
+  const [data, setData] = useState<HotelInvoiceData>(getInitialData);
   const [isGenerating, setIsGenerating] = useState(false);
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,7 +68,7 @@ export default function HotelInvoiceModule({ onNavigateHome }: Props) {
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset all form data? This cannot be undone.')) {
-      setData(INITIAL_HOTEL_INVOICE);
+      setData(getInitialData());
       addToast('Form has been reset.', 'info');
     }
   };

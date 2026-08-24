@@ -197,6 +197,7 @@ describe('GeneralInvoiceModule', () => {
     fireEvent.click(generateBtn!);
     expect(screen.getByText('Company Name is required.')).toBeInTheDocument();
 
+
     const company = screen.getByPlaceholderText('e.g. Acme Corp');
     fireEvent.change(company, { target: { value: 'Valid Company' } });
 
@@ -279,5 +280,42 @@ describe('GeneralInvoiceModule', () => {
     // Simulate remount reading from storage
     render(<Wrapper />);
     expect(screen.getByDisplayValue('RoundTrip Co')).toBeInTheDocument();
+  });
+
+  test('shows the stored status in the select even for "Partially Paid" (regression)', () => {
+    // 'Partially Paid' is a valid type/normalizer value but used to be
+    // missing from the Select options, leaving the control visually empty.
+    localStorage.setItem('ordris_general_invoice_v1', JSON.stringify({
+      timestamp: Date.now(),
+      data: {
+        companyName: 'Paid-ish Co',
+        customer: { name: 'Cust' },
+        items: [],
+        payments: [],
+        creditNotes: [],
+        recurring: {},
+        status: 'Partially Paid',
+      },
+    }));
+
+    render(<Wrapper />);
+    const statusSelect = screen.getByDisplayValue('Partially Paid') as HTMLSelectElement;
+    expect(statusSelect.tagName).toBe('SELECT');
+  });
+
+  test('rejects whitespace-only company and customer names before generating', () => {
+    render(<Wrapper />);
+    const generateBtn = screen.getAllByRole('button').find(b => b.textContent?.includes('Generate PDF') && !b.className.includes('fab'));
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Acme Corp'), { target: { value: '   ' } });
+    fireEvent.click(generateBtn!);
+    expect(screen.getByText('Company Name is required.')).toBeInTheDocument();
+    expect(pdfService.generateGeneralInvoicePDF).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Acme Corp'), { target: { value: 'Real Co' } });
+    fireEvent.change(screen.getByPlaceholderText('John Doe or Company Ltd'), { target: { value: '  ' } });
+    fireEvent.click(generateBtn!);
+    expect(screen.getByText('Customer Name is required.')).toBeInTheDocument();
+    expect(pdfService.generateGeneralInvoicePDF).not.toHaveBeenCalled();
   });
 });

@@ -11,7 +11,9 @@ import {
   drawPdfFooter, 
   addLogoPdf, 
   drawSignatureArea,
-  drawWatermark
+  drawWatermark,
+  ensurePdfSpace,
+  drawWrappedLines
 } from './pdfUtils';
 
 export const generateGeneralLPOPDF = (data: GeneralLPOData): void => {
@@ -178,7 +180,11 @@ export const generateGeneralLPOPDF = (data: GeneralLPOData): void => {
   const shippingAmount = Number(data.shippingCharges || 0);
   const grandTotal = subtotal - discountAmount + taxAmount + shippingAmount;
 
-  let summaryY = finalY + 10;
+  // The items table may have ended near the bottom of the page — move the
+  // whole summary block to a fresh page rather than drawing it off-page.
+  const summaryStart = ensurePdfSpace(doc, finalY + 10, 50);
+  const samePageAsTable = summaryStart === finalY + 10;
+  let summaryY = summaryStart;
   const summaryX = 140;
   const valX = 196;
 
@@ -218,18 +224,24 @@ export const generateGeneralLPOPDF = (data: GeneralLPOData): void => {
   doc.text('Grand Total:', summaryX, summaryY);
   doc.text(`${currency} ${grandTotal.toFixed(2)}`, valX, summaryY, { align: 'right' });
 
-  // 5. Amount in Words
-  let notesY = Math.max(finalY + 10, summaryY + 15);
+  // 5. Amount in Words (wrapped so long amounts cannot overflow the page)
+  let notesY = samePageAsTable ? Math.max(finalY + 10, summaryY + 15) : summaryY + 15;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(PDF_COLORS.muted[0], PDF_COLORS.muted[1], PDF_COLORS.muted[2]);
-  doc.text(`Amount in words: ${getAmountInWords(grandTotal, currency)}`, 14, notesY);
-  notesY += 10;
+  const wordsLines = doc.splitTextToSize(
+    `Amount in words: ${getAmountInWords(grandTotal, currency)}`,
+    180,
+  ) as string[];
+  notesY = drawWrappedLines(doc, wordsLines, 14, notesY);
+  notesY += 5;
 
   doc.setFont('helvetica', 'normal');
 
   // 6. Notes and Terms
   if (data.notes || data.deliveryNotes) {
+    notesY = ensurePdfSpace(doc, notesY, 30);
+
     doc.setFont('helvetica', 'bold');
     doc.text('Notes / Instructions:', 14, notesY);
     notesY += 6;
@@ -239,28 +251,26 @@ export const generateGeneralLPOPDF = (data: GeneralLPOData): void => {
     if (data.notes) combinedNotes += data.notes + '\n';
     if (data.deliveryNotes) combinedNotes += `Delivery: ${data.deliveryNotes}`;
     
-    const noteLines = doc.splitTextToSize(combinedNotes.trim(), 180);
-    doc.text(noteLines, 14, notesY);
-    notesY += (noteLines.length * 5) + 5;
+    const noteLines = doc.splitTextToSize(combinedNotes.trim(), 180) as string[];
+    notesY = drawWrappedLines(doc, noteLines, 14, notesY);
+    notesY += 5;
   }
 
   if (data.termsAndConditions) {
+    notesY = ensurePdfSpace(doc, notesY, 30);
+
     doc.setFont('helvetica', 'bold');
     doc.text('Terms & Conditions:', 14, notesY);
     notesY += 6;
     doc.setFont('helvetica', 'normal');
-    const termLines = doc.splitTextToSize(data.termsAndConditions, 180);
-    doc.text(termLines, 14, notesY);
-    notesY += (termLines.length * 5) + 5;
+    const termLines = doc.splitTextToSize(data.termsAndConditions, 180) as string[];
+    notesY = drawWrappedLines(doc, termLines, 14, notesY);
+    notesY += 5;
   }
 
   // 7. Signature Area
   if (data.includeSignature) {
-    if (notesY > 240) {
-      doc.addPage();
-      notesY = 20;
-    }
-    notesY += 10;
+    notesY = ensurePdfSpace(doc, notesY + 10, 30);
     drawSignatureArea(doc, notesY, { showSignature: true, signatureName: data.signatureName });
   }
 

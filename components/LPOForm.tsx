@@ -147,17 +147,22 @@ const LPOForm: React.FC<LPOFormProps> = ({ data, onChange }) => {
     if (file) {
       if (!file.type.startsWith('image/')) {
         addToast('Please select an image file.', 'error');
+        e.target.value = '';
         return;
       }
       if (file.size > 500 * 1024) {
         addToast('File size too large. Please select an image under 500KB.', 'error');
-        if (logoInputRef.current) logoInputRef.current.value = '';
+        e.target.value = '';
         return;
       }
       
       const reader = new FileReader();
       reader.onloadend = () => {
         updatePdfOption('logoDataUrl', reader.result as string);
+      };
+      reader.onerror = () => {
+        addToast('Failed to read the selected image.', 'error');
+        e.target.value = '';
       };
       reader.readAsDataURL(file);
     }

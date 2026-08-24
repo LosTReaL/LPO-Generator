@@ -94,7 +94,7 @@ index.css                     ~1.7k-line vanilla CSS design system (CSS custom p
 ```
 
 ### Test files
-Every component/service has a colocated `*.test.ts(x)`. 22 files / ~290 tests currently pass,including `services/realPdfOutput.test.ts` which runs the REAL (unmocked) jsPDF stack and validates actual PDF binaries (`pdfService.hotelLpo.test.ts` is a second spec for pdfService.ts — the filename describes the module under test). Playwright E2E journeys live in `e2e/app.spec.ts` against the production preview build.
+Every component/service has a colocated `*.test.ts(x)`. 22 files / 307 tests currently pass,including `services/realPdfOutput.test.ts` which runs the REAL (unmocked) jsPDF stack and validates actual PDF binaries (`pdfService.hotelLpo.test.ts` is a second spec for pdfService.ts — the filename describes the module under test). Playwright E2E journeys live in `e2e/app.spec.ts` against the production preview build.
 
 ---
 
@@ -216,4 +216,4 @@ Bump the storage-key version suffix AND keep `hydrateData`-style backward compat
 
 ---
 
-*Last audited: 2026-08-23 — React 18.3, Vite 6, Vitest 3, jspdf 2.5.x, jspdf-autotable 3.8.x.*
+*Last audited: 2026-08-24 — React 18.3, Vite 6, Vitest 3, jspdf 4.2.x, jspdf-autotable 5.0.x.*

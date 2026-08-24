@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { GeneralInvoiceData } from '../types/generalInvoice';
-import { getAmountInWords, drawPdfFooter, drawWatermark, PDF_TABLE_HEAD_STYLES, PDF_TABLE_BODY_STYLES, PDF_TABLE_ALTERNATE_ROW_STYLES } from './pdfUtils';
+import { getAmountInWords, drawPdfFooter, drawWatermark, ensurePdfSpace, drawWrappedLines, PDF_TABLE_HEAD_STYLES, PDF_TABLE_BODY_STYLES, PDF_TABLE_ALTERNATE_ROW_STYLES } from './pdfUtils';
 
 // jsPDF's built-in Helvetica font cannot render non-Latin currency glyphs
 // (₹, ₺, ﷼ …) that Intl.NumberFormat emits for some ISO codes, so amounts
@@ -107,9 +107,13 @@ export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
     alternateRowStyles: PDF_TABLE_ALTERNATE_ROW_STYLES,
   });
 
-  let finalY = (doc as any).lastAutoTable.finalY + 10;
-
   // 4. Totals Calculation
+  const rawTableEnd = (doc as any).lastAutoTable.finalY + 10;
+  // The items table can end near the bottom of the page — move the totals
+  // block (plus words/payments that follow) to a fresh page instead of
+  // rendering it off-page where it would be silently lost.
+  const totalsStart = ensurePdfSpace(doc, rawTableEnd, 70);
+  let finalY = totalsStart;
   let subtotal = 0;
   let itemTax = 0;
   
@@ -180,14 +184,20 @@ export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
 
   finalY = Math.max(finalY + 20, totalsY + 10);
 
-  // Amount in words
+  // Amount in words (wrapped so long amounts cannot run off the page)
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(9);
-  doc.text(`Amount in Words: ${getAmountInWords(grandTotal, currency)}`, 14, finalY);
-  finalY += 10;
+  const pageWidth = doc.internal.pageSize.width;
+  const wordLines = doc.splitTextToSize(
+    `Amount in Words: ${getAmountInWords(grandTotal, currency)}`,
+    pageWidth - 28,
+  ) as string[];
+  finalY = drawWrappedLines(doc, wordLines, 14, finalY);
+  finalY += 5;
 
   // Payments History
   if (data.payments.length > 0) {
+    finalY = ensurePdfSpace(doc, finalY, 45);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text('Payments Received', 14, finalY);
@@ -218,35 +228,39 @@ export const generateGeneralInvoicePDF = (data: GeneralInvoiceData) => {
   
   // Bank Details
   if (data.bankDetails) {
+    finalY = ensurePdfSpace(doc, finalY, 30);
     doc.setFont('helvetica', 'bold');
     doc.text('Bank Details:', 14, finalY);
     doc.setFont('helvetica', 'normal');
-    const bankLines = doc.splitTextToSize(data.bankDetails, 180);
-    doc.text(bankLines, 14, finalY + 5);
-    finalY += (bankLines.length * 5) + 5;
+    const bankLines = doc.splitTextToSize(data.bankDetails, 180) as string[];
+    finalY = drawWrappedLines(doc, bankLines, 14, finalY + 5);
+    finalY += 5;
   }
 
   // Terms and Notes
   if (data.termsAndConditions) {
+    finalY = ensurePdfSpace(doc, finalY, 30);
     doc.setFont('helvetica', 'bold');
     doc.text('Terms & Conditions:', 14, finalY);
     doc.setFont('helvetica', 'normal');
-    const termsLines = doc.splitTextToSize(data.termsAndConditions, 180);
-    doc.text(termsLines, 14, finalY + 5);
-    finalY += (termsLines.length * 5) + 5;
+    const termsLines = doc.splitTextToSize(data.termsAndConditions, 180) as string[];
+    finalY = drawWrappedLines(doc, termsLines, 14, finalY + 5);
+    finalY += 5;
   }
 
   if (data.notes) {
+    finalY = ensurePdfSpace(doc, finalY, 30);
     doc.setFont('helvetica', 'bold');
     doc.text('Notes:', 14, finalY);
     doc.setFont('helvetica', 'normal');
-    const notesLines = doc.splitTextToSize(data.notes, 180);
-    doc.text(notesLines, 14, finalY + 5);
-    finalY += (notesLines.length * 5) + 5;
+    const notesLines = doc.splitTextToSize(data.notes, 180) as string[];
+    finalY = drawWrappedLines(doc, notesLines, 14, finalY + 5);
+    finalY += 5;
   }
 
   // Signature
   if (data.showSignature) {
+    finalY = ensurePdfSpace(doc, finalY + 20, 15);
     finalY += 20;
     doc.line(14, finalY, 74, finalY);
     doc.text(`Authorized Signature: ${data.signatureName}`, 14, finalY + 5);

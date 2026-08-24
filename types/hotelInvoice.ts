@@ -64,7 +64,20 @@ export interface HotelInvoiceData {
 
 export const INITIAL_HOTEL_INVOICE: HotelInvoiceData = {
   hotelName: '',
-  primaryGuest: { name: '' },
+  hotelLogo: '',
+  showLogo: false,
+  hotelAddress: '',
+  hotelPhone: '',
+  hotelEmail: '',
+  primaryGuest: { name: '', loyaltyNumber: '' },
+  guestPhone: '',
+  guestEmail: '',
+  companyName: '',
+  checkInDate: '',
+  checkOutDate: '',
+  folioNumber: '',
+  roomNumber: '',
+  roomType: '',
   lineItems: [],
   payments: [],
   serviceChargeType: 'percentage',
@@ -77,9 +90,15 @@ export const INITIAL_HOTEL_INVOICE: HotelInvoiceData = {
   discountValue: 0,
   discountLabel: 'Discount',
   status: 'Draft',
+  invoiceDate: '',
+  dueDate: '',
   currency: 'USD',
   invoiceNumber: '',
-  manualInvoiceNumber: false
+  manualInvoiceNumber: false,
+  notes: '',
+  showSignature: false,
+  signatureName: '',
+  watermarkText: ''
 };
 
 export const CHARGE_CATEGORIES = ['Room', 'Food & Beverage', 'Spa', 'Laundry', 'Mini Bar', 'Other'];

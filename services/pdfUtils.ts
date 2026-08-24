@@ -63,7 +63,12 @@ export const getAmountInWords = (amount: number, currency: string): string => {
   if (integerPart === 0) {
     text = 'Zero ' + config.majorPlural;
   } else {
-    text = numToWords(integerPart) + ' ' + (integerPart === 1 ? config.major : config.majorPlural);
+    // numToWords returns '' beyond the trillions — fall back to digits so
+    // extreme amounts never render as an empty words section.
+    const integerWords = numToWords(integerPart);
+    text = integerWords
+      ? `${integerWords} ${integerPart === 1 ? config.major : config.majorPlural}`
+      : `${integerPart.toLocaleString('en-US')} ${config.majorPlural}`;
   }
 
   if (decimalPart > 0) {
@@ -168,6 +173,56 @@ export const drawPdfFooter = (doc: jsPDF, refNumber: string, footerText: string,
   }
 };
 
+// -- Page-break helpers -------------------------------------------------
+//
+// Sections rendered after autoTable (totals, notes, signatures…) must
+// never be drawn below the bottom of the page: jsPDF happily renders at
+// out-of-range Y coordinates and the content is silently lost on the
+// printed/exported document.
+
+const DEFAULT_BOTTOM_MARGIN = 20;
+
+/** Start a new page when `requiredSpace` no longer fits; returns the Y to draw at. */
+export const ensurePdfSpace = (
+  doc: jsPDF,
+  yCursor: number,
+  requiredSpace: number,
+  topMargin: number = 20,
+): number => {
+  const pageHeight = doc.internal.pageSize.height;
+  if (yCursor + requiredSpace > pageHeight - DEFAULT_BOTTOM_MARGIN) {
+    doc.addPage();
+    return topMargin;
+  }
+  return yCursor;
+};
+
+/**
+ * Render pre-wrapped text lines one by one, breaking onto a fresh page
+ * whenever the next line would fall past the bottom margin.
+ * Returns the Y cursor after the last drawn line.
+ */
+export const drawWrappedLines = (
+  doc: jsPDF,
+  lines: string[],
+  x: number,
+  yCursor: number,
+  lineHeight: number = 5,
+  topMargin: number = 20,
+): number => {
+  const pageHeight = doc.internal.pageSize.height;
+  let y = yCursor;
+  for (const line of lines) {
+    if (y > pageHeight - DEFAULT_BOTTOM_MARGIN) {
+      doc.addPage();
+      y = topMargin;
+    }
+    doc.text(line, x, y);
+    y += lineHeight;
+  }
+  return y;
+};
+
 // Add logo to PDF
 export const addLogoPdf = (doc: jsPDF, logoDataUrl: string, x: number, y: number, w: number = 40, h: number = 20) => {
   try {
@@ -238,13 +293,26 @@ export const drawWatermark = (doc: jsPDF, text: string) => {
   const pageCount = doc.getNumberOfPages();
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
+
+  // Shrink long watermarks so they stay inside the page instead of
+  // bleeding off both edges at the fixed display size.
+  const maxFontSize = 60;
+  let fontSize = maxFontSize;
+  doc.setFontSize(maxFontSize);
+  if (typeof doc.getTextWidth === 'function') {
+    const maxWidth = pageWidth - 20;
+    const measured = doc.getTextWidth(text.toUpperCase());
+    if (measured > maxWidth) {
+      fontSize = Math.max(12, Math.floor((maxWidth / measured) * maxFontSize));
+      doc.setFontSize(fontSize);
+    }
+  }
   
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.saveGraphicsState();
     doc.setGState(new (doc.GState as any)({ opacity: 0.1 }));
     doc.setTextColor(150, 150, 150);
-    doc.setFontSize(60);
     doc.setFont("helvetica", "bold");
 
     // Write text diagonally in the center of the page

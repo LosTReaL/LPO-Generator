@@ -9,13 +9,19 @@ import { useToast } from '../shared/ToastContext';
 
 const STORAGE_KEY = 'ordris_general_lpo_v1';
 const STORAGE_EXPIRY_DAYS = 7;
+const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
+
+// Factory instead of sharing the INITIAL_* constant by reference: a stray
+// in-place mutation would otherwise poison every future reset.
+const getInitialData = (): GeneralLPOData =>
+  JSON.parse(JSON.stringify(INITIAL_GENERAL_LPO)) as GeneralLPOData;
 
 interface Props {
   onNavigateHome: () => void;
 }
 
 export default function GeneralLPOModule({ onNavigateHome }: Props) {
-  const [data, setData] = useState<GeneralLPOData>(INITIAL_GENERAL_LPO);
+  const [data, setData] = useState<GeneralLPOData>(getInitialData);
   const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
@@ -61,6 +67,12 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > MAX_IMPORT_BYTES) {
+      addToast('File is too large to import (max 2 MB).', 'error');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const result = parseImportPayload(String(event.target?.result ?? ''));
@@ -94,7 +106,7 @@ export default function GeneralLPOModule({ onNavigateHome }: Props) {
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset all form data? This cannot be undone.')) {
-      setData(INITIAL_GENERAL_LPO);
+      setData(getInitialData());
       localStorage.removeItem(STORAGE_KEY);
       addToast('Form has been reset.', 'info');
     }

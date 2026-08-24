@@ -317,18 +317,18 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
             
             <div className="form-group">
               <Label icon={Calendar}>Invoice Date</Label>
-              <input type="date" className="input-field" value={data.invoiceDate} onChange={e => updateField('invoiceDate', e.target.value)} />
+              <input type="date" className="input-field" value={data.invoiceDate ?? ''} onChange={e => updateField('invoiceDate', e.target.value)} />
             </div>
             <div className="form-group">
               <Label icon={Calendar}>Due Date</Label>
-              <input type="date" className="input-field" value={data.dueDate} onChange={e => updateField('dueDate', e.target.value)} />
+              <input type="date" className="input-field" value={data.dueDate ?? ''} onChange={e => updateField('dueDate', e.target.value)} />
             </div>
             <div className="form-group">
               <Label>Status</Label>
               <Select 
                 value={data.status} 
                 onChange={v => updateField('status', v as GeneralInvoiceStatus)}
-                options={['Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled']}
+                options={['Draft', 'Sent', 'Paid', 'Partially Paid', 'Overdue', 'Cancelled']}
               />
             </div>
             <div className="form-group full-width">
@@ -414,7 +414,7 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
                 <div className="form-grid">
                   <div className="form-group">
                     <Label>Date</Label>
-                    <input type="date" className="input-field" value={note.date} onChange={e => updateCreditNote(index, 'date', e.target.value)} />
+                    <input type="date" className="input-field" value={note.date ?? ''} onChange={e => updateCreditNote(index, 'date', e.target.value)} />
                   </div>
                   <div className="form-group">
                     <Label>Amount ({data.currency})</Label>
@@ -447,7 +447,7 @@ export const GeneralInvoiceForm: React.FC<Props> = ({ data, setData }) => {
                </div>
                <div className="form-group">
                  <Label>Next Invoice Date</Label>
-                 <input type="date" className="input-field" value={data.recurring.nextDate} onChange={e => updateRecurring('nextDate', e.target.value)} />
+                  <input type="date" className="input-field" value={data.recurring.nextDate ?? ''} onChange={e => updateRecurring('nextDate', e.target.value)} />
                </div>
              </div>
           </Checkbox>

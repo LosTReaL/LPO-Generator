@@ -104,6 +104,15 @@ describe('parseStoredDate', () => {
     expect(parseStoredDate(12345)).toBeNull();
     expect(parseStoredDate('')).toBeNull();
   });
+
+  it('rejects impossible calendar dates instead of rolling them over (regression)', () => {
+    // '2026-02-31' used to silently become March 3rd, corrupting stay data
+    expect(parseStoredDate('2026-02-31')).toBeNull();
+    expect(parseStoredDate('2026-04-31')).toBeNull();
+    expect(parseStoredDate('2025-02-29')).toBeNull(); // not a leap year
+    expect(parseStoredDate('2024-02-29')).not.toBeNull(); // leap year is fine
+    expect(parseStoredDate('2026-13-01')).toBeNull();
+  });
 });
 
 describe('sanitizeDateString', () => {
@@ -114,6 +123,15 @@ describe('sanitizeDateString', () => {
     expect(sanitizeDateString(undefined)).toBe('');
     // Prototype-pollution style junk must not survive
     expect(sanitizeDateString('__proto__')).toBe('');
+  });
+
+  it('rejects well-formed but non-existent dates (regression)', () => {
+    // These passed the old regex-only check, then crashed date-fns format()
+    // during PDF generation for imported documents.
+    expect(sanitizeDateString('2026-02-31')).toBe('');
+    expect(sanitizeDateString('2026-00-10')).toBe('');
+    expect(sanitizeDateString('2026-01-32')).toBe('');
+    expect(sanitizeDateString('2024-02-29')).toBe('2024-02-29');
   });
 });
 
@@ -258,6 +276,16 @@ describe('normalizeGeneralLpoData', () => {
     expect(result.items![0].description).toBe('Real');
   });
 
+  it('keeps item units inside the Select options (regression)', () => {
+    // Free-form units would render a blank dropdown in the form
+    const result = normalizeGeneralLpoData({
+      items: [{ unit: 'tonnes' }, { unit: 'kg' }, {}],
+    });
+    expect(result.items![0].unit).toBe('pcs'); // unknown -> fallback
+    expect(result.items![1].unit).toBe('kg'); // valid option survives
+    expect(result.items![2].unit).toBe('pcs');
+  });
+
   it('rejects date fields in the wrong format', () => {
     const result = normalizeGeneralLpoData({ expectedDeliveryDate: '01/30/2026', approvalDate: '2026-01-30' });
     expect(result.expectedDeliveryDate).toBe('');
@@ -317,6 +345,26 @@ describe('normalizeHotelInvoiceData', () => {
     expect(result.payments[1].method).toBe('Other');
     expect(result.payments[1].amount).toBe(0);
   });
+
+  it('falls back to a selectable payment method when the stored one is not in the Select (regression)', () => {
+    // A stale/hostile method would render a blank dropdown while state kept
+    // the divergent value — it must collapse to the select's fallback.
+    const result = normalizeHotelInvoiceData({
+      payments: [{ method: 'Bitcoin' }, { method: 'Bank Transfer' }],
+    });
+    expect(result.payments[0].method).toBe('Other');
+    expect(result.payments[1].method).toBe('Bank Transfer'); // valid option survives
+  });
+
+  it('uses the HOTEL select list, not a union, so cross-module imports stay displayable (regression)', () => {
+    // 'Online Payment'/'Cheque' exist only in the General Invoice module's
+    // Select; imported into Hotel Invoice they must collapse to 'Other'.
+    const result = normalizeHotelInvoiceData({
+      payments: [{ method: 'Online Payment' }, { method: 'Cheque' }],
+    });
+    expect(result.payments[0].method).toBe('Other');
+    expect(result.payments[1].method).toBe('Other');
+  });
 });
 
 describe('normalizeGeneralInvoiceData', () => {
@@ -372,5 +420,44 @@ describe('normalizeGeneralInvoiceData', () => {
     expect(result.status).toBe('Draft');
     expect(result.currency).toBe('USD');
     expect(result.showSignature).toBe(true);
+  });
+
+  it('keeps the full General-Invoice payment method list selectable (regression)', () => {
+    const result = normalizeGeneralInvoiceData({
+      payments: [{ method: 'Online Payment' }, { method: 'Cheque' }, { method: 'Barter' }],
+    });
+    expect(result.payments[0].method).toBe('Online Payment'); // valid in THIS module
+    expect(result.payments[1].method).toBe('Cheque');
+    expect(result.payments[2].method).toBe('Other');
+  });
+});
+
+describe('prototype pollution safety (import path)', () => {
+  const PROTOTYPE_CLEAN = () => {
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
+  };
+
+  it('does not pollute Object.prototype via __proto__ keys in imported payloads', () => {
+    const result = parseImportPayload(
+      '{"__proto__": {"polluted": true}, "companyName": "Evil Co", "customer": {"name": "C"}}',
+    );
+    expect(result.ok).toBe(true);
+    PROTOTYPE_CLEAN();
+
+    const normalized = normalizeGeneralInvoiceData(result.data);
+    expect(normalized.companyName).toBe('Evil Co');
+    PROTOTYPE_CLEAN();
+  });
+
+  it('survives constructor/hasOwnProperty shadowing attempts in all normalizers', () => {
+    const hostile = JSON.parse(
+      '{"constructor": {"prototype": {"polluted": 1}}, "hasOwnProperty": "junk", "hotelName": "H"}',
+    );
+    expect(() => normalizeHotelLpoData(hostile)).not.toThrow();
+    expect(() => normalizeGeneralLpoData(hostile)).not.toThrow();
+    expect(() => normalizeHotelInvoiceData(hostile)).not.toThrow();
+    expect(() => normalizeGeneralInvoiceData(hostile)).not.toThrow();
+    PROTOTYPE_CLEAN();
   });
 });

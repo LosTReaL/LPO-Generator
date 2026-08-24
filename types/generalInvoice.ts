@@ -71,14 +71,25 @@ export interface GeneralInvoiceData {
 
 export const INITIAL_GENERAL_INVOICE: GeneralInvoiceData = {
   companyName: '',
-  customer: { name: '' },
+  companyTaxId: '',
+  companyAddress: '',
+  companyEmail: '',
+  companyPhone: '',
+  bankDetails: '',
+  customer: { name: '', taxId: '', address: '', email: '', phone: '' },
   items: [],
   payments: [],
   creditNotes: [],
-  recurring: { enabled: false, frequency: 'monthly' },
+  recurring: { enabled: false, frequency: 'monthly', nextDate: '' },
   manualInvoiceNumber: false,
   invoiceNumber: '',
+  invoiceDate: '',
+  dueDate: '',
   status: 'Draft',
+  showSignature: false,
+  signatureName: '',
+  notes: '',
+  termsAndConditions: '',
   currency: 'USD',
   shippingCharges: 0,
   usePerItemTax: false,
@@ -86,7 +97,8 @@ export const INITIAL_GENERAL_INVOICE: GeneralInvoiceData = {
   globalTaxRate: 0,
   globalTaxLabel: 'Tax',
   discountType: 'flat',
-  discountValue: 0
+  discountValue: 0,
+  watermarkText: ''
 };
 
 export const GEN_INVOICE_CURRENCIES = GLOBAL_CURRENCIES;

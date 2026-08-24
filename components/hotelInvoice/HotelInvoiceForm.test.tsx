@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { HotelInvoiceForm } from './HotelInvoiceForm';
+import { ToastProvider } from '../shared/ToastContext';
 import { INITIAL_HOTEL_INVOICE, HotelInvoiceData } from '../../types/hotelInvoice';
+
+// The form raises user feedback through useToast(), so it must render
+// inside the provider (same requirement as LPOForm).
+const renderForm = (ui: React.ReactElement) => render(<ToastProvider>{ui}</ToastProvider>);
 
 describe('HotelInvoiceForm', () => {
   const mockOnChange = vi.fn();
@@ -25,7 +30,7 @@ describe('HotelInvoiceForm', () => {
   };
 
   it('renders form and updates hotel details', () => {
-    const { container } = render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
+    const { container } = renderForm(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
     
     const hotelNameInput = getNextInput(container, 'Hotel Name') as HTMLInputElement;
     fireEvent.change(hotelNameInput, { target: { value: 'Test Hotel' } });
@@ -45,7 +50,7 @@ describe('HotelInvoiceForm', () => {
   });
 
   it('handles logo upload correctly', async () => {
-    render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
+    renderForm(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
     
     // Upload logo
     const file = new File(['dummy content'], 'logo.png', { type: 'image/png' });
@@ -77,14 +82,14 @@ describe('HotelInvoiceForm', () => {
     expect(mockOnChange).toHaveBeenCalledWith({ hotelLogo: 'data:image/png;base64,dummy', showLogo: true });
 
     // Test Show Logo checkbox (needs hotelLogo to be present to show up)
-    const { container: reContainer } = render(<HotelInvoiceForm data={{ ...baseData, hotelLogo: 'data:image/png;base64,dummy', showLogo: true }} onChange={mockOnChange} />);
+    const { container: reContainer } = renderForm(<HotelInvoiceForm data={{ ...baseData, hotelLogo: 'data:image/png;base64,dummy', showLogo: true }} onChange={mockOnChange} />);
     const showLogoCheckbox = Array.from(reContainer.querySelectorAll('label')).find(l => l.textContent?.includes('Show Logo'))?.querySelector('input') as HTMLInputElement;
     fireEvent.click(showLogoCheckbox);
     expect(mockOnChange).toHaveBeenCalledWith({ showLogo: false });
   });
 
   it('updates guest information', () => {
-    const { container } = render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
+    const { container } = renderForm(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
     
     const guestNameInput = getNextInput(container, 'Guest Name') as HTMLInputElement;
     fireEvent.change(guestNameInput, { target: { value: 'John Smith' } });
@@ -108,7 +113,7 @@ describe('HotelInvoiceForm', () => {
   });
 
   it('updates stay details', () => {
-    const { container } = render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
+    const { container } = renderForm(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
 
     const checkIn = getNextInput(container, 'Check-In Date') as HTMLInputElement;
     fireEvent.change(checkIn, { target: { value: '2026-08-01' } });
@@ -132,7 +137,7 @@ describe('HotelInvoiceForm', () => {
   });
 
   it('handles line items (add, update, delete)', () => {
-    const { rerender, container } = render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
+    const { rerender, container } = renderForm(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
     
     // Add charge
     const addChargeBtn = screen.getByText(/Add Charge/i);
@@ -146,7 +151,7 @@ describe('HotelInvoiceForm', () => {
     
     // Now rerender with these line items
     const withLineItemData = { ...baseData, lineItems: twoLineItems };
-    rerender(<HotelInvoiceForm data={withLineItemData} onChange={mockOnChange} />);
+    rerender(<ToastProvider><HotelInvoiceForm data={withLineItemData} onChange={mockOnChange} /></ToastProvider>);
 
     // Update Date
     const dateInputs = container.querySelectorAll('input[type="date"]');
@@ -199,7 +204,7 @@ describe('HotelInvoiceForm', () => {
   });
 
   it('handles payments (add, update, delete)', () => {
-    const { rerender, container } = render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
+    const { rerender, container } = renderForm(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
     
     // Add payment
     const addPaymentBtn = screen.getByText(/Add Payment/i);
@@ -213,7 +218,7 @@ describe('HotelInvoiceForm', () => {
     
     // Now rerender with this payment
     const withPaymentData = { ...baseData, payments: twoPayments };
-    rerender(<HotelInvoiceForm data={withPaymentData} onChange={mockOnChange} />);
+    rerender(<ToastProvider><HotelInvoiceForm data={withPaymentData} onChange={mockOnChange} /></ToastProvider>);
 
     // Update date
     const dateInputs = container.querySelectorAll('input[type="date"]');
@@ -250,8 +255,37 @@ describe('HotelInvoiceForm', () => {
     expect(mockOnChange).toHaveBeenCalledWith({ payments: [expect.any(Object)] });
   });
 
+  it('removes the correct row type when both charges and payments exist (regression)', () => {
+    // Regression: the two remove buttons used to call each other's handler,
+    // so deleting a payment silently removed a CHARGE instead.
+    const data: HotelInvoiceData = {
+      ...baseData,
+      lineItems: [{
+        id: 'charge-1', category: 'Room', description: 'One night',
+        quantity: 1, rate: 100, amount: 100, date: '2026-01-01',
+      }],
+      payments: [{
+        id: 'pay-1', method: 'Cash', amount: 50, date: '2026-01-02', reference: '',
+      }],
+    };
+    const { container } = renderForm(<HotelInvoiceForm data={data} onChange={mockOnChange} />);
+
+    // The remove button inside the CHARGES table must delete the charge.
+    // (Updates are partial; with the old swapped handlers this click emitted
+    // a PAYMENTS update instead — or nothing at all.)
+    fireEvent.click(container.querySelector('button[aria-label="Remove charge"]')!);
+    expect(mockOnChange).toHaveBeenCalledTimes(1);
+    expect(mockOnChange.mock.calls[0][0]).toEqual({ lineItems: [] });
+
+    // ...and the one inside the PAYMENTS table must delete the payment
+    mockOnChange.mockClear();
+    fireEvent.click(container.querySelector('button[aria-label="Remove payment"]')!);
+    expect(mockOnChange).toHaveBeenCalledTimes(1);
+    expect(mockOnChange.mock.calls[0][0]).toEqual({ payments: [] });
+  });
+
   it('updates document settings', () => {
-    const { rerender, container } = render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
+    const { rerender, container } = renderForm(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
     
     const dateInputs = container.querySelectorAll('input[type="date"]');
     const invoiceDate = dateInputs[2];
@@ -293,7 +327,7 @@ describe('HotelInvoiceForm', () => {
     fireEvent.click(sigCheckbox);
     expect(mockOnChange).toHaveBeenCalledWith({ showSignature: true });
 
-    rerender(<HotelInvoiceForm data={{ ...baseData, showSignature: true }} onChange={mockOnChange} />);
+    rerender(<ToastProvider><HotelInvoiceForm data={{ ...baseData, showSignature: true }} onChange={mockOnChange} /></ToastProvider>);
     const sigNameInput = screen.getByPlaceholderText(/Front Desk \/ Manager/i);
     fireEvent.change(sigNameInput, { target: { value: 'John Manager' } });
     expect(mockOnChange).toHaveBeenCalledWith({ signatureName: 'John Manager' });
@@ -303,7 +337,7 @@ describe('HotelInvoiceForm', () => {
     fireEvent.click(watermarkCheckbox);
     expect(mockOnChange).toHaveBeenCalledWith({ watermarkText: 'DRAFT' }); 
     
-    rerender(<HotelInvoiceForm data={{ ...baseData, watermarkText: 'DRAFT' }} onChange={mockOnChange} />);
+    rerender(<ToastProvider><HotelInvoiceForm data={{ ...baseData, watermarkText: 'DRAFT' }} onChange={mockOnChange} /></ToastProvider>);
     const watermarkInput = screen.getByPlaceholderText(/e\.g\. DRAFT/i);
     fireEvent.change(watermarkInput, { target: { value: 'FINAL' } });
     expect(mockOnChange).toHaveBeenCalledWith({ watermarkText: 'FINAL' });
@@ -327,7 +361,7 @@ describe('HotelInvoiceForm', () => {
       discountValue: 10,
     };
     
-    const { container } = render(<HotelInvoiceForm data={dataWithTotals} onChange={mockOnChange} />);
+    const { container } = renderForm(<HotelInvoiceForm data={dataWithTotals} onChange={mockOnChange} />);
 
     // Tax type updates - Find by looking for options 'percentage' and 'flat'
     const selects = Array.from(container.querySelectorAll('select')).filter(s => s.options.length === 2 && s.options[0].value === 'percentage');
@@ -380,7 +414,7 @@ describe('HotelInvoiceForm', () => {
       discountValue: 10,
     };
     
-    render(<HotelInvoiceForm data={dataWithFlatPercentage} onChange={mockOnChange} />);
+    renderForm(<HotelInvoiceForm data={dataWithFlatPercentage} onChange={mockOnChange} />);
     
     expect(screen.getByText('100.00 USD')).toBeInTheDocument(); // subtotal
     expect(screen.getByText('20.00 USD')).toBeInTheDocument(); // service charge flat
@@ -394,14 +428,14 @@ describe('HotelInvoiceForm', () => {
   });
 
   it('unchecks Apply Watermark correctly', () => {
-    const { container } = render(<HotelInvoiceForm data={{ ...baseData, watermarkText: 'DRAFT' }} onChange={mockOnChange} />);
+    const { container } = renderForm(<HotelInvoiceForm data={{ ...baseData, watermarkText: 'DRAFT' }} onChange={mockOnChange} />);
     const watermarkCheckbox = Array.from(container.querySelectorAll('label')).find(l => l.textContent?.includes('Apply Watermark'))?.querySelector('input') as HTMLInputElement;
     fireEvent.click(watermarkCheckbox);
     expect(mockOnChange).toHaveBeenCalledWith({ watermarkText: '' });
   });
 
   it('changes serviceChargeLabel, taxLabel, discountLabel', () => {
-    render(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
+    renderForm(<HotelInvoiceForm data={baseData} onChange={mockOnChange} />);
     
     const labels = Array.from(screen.getAllByText('Label'));
     // The next sibling of the label span is the div.input-group, inside which there is the input

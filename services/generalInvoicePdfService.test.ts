@@ -11,6 +11,8 @@ vi.mock('jspdf', () => {
     splitTextToSize: vi.fn().mockReturnValue(['line1', 'line2']),
     line: vi.fn(),
     save: vi.fn(),
+    addPage: vi.fn(),
+    internal: { pageSize: { width: 210, height: 297 } },
     lastAutoTable: { finalY: 100 },
   }));
   return { default: jsPDF };
@@ -20,14 +22,15 @@ vi.mock('jspdf-autotable', () => {
   return { default: vi.fn() };
 });
 
-vi.mock('./pdfUtils', () => ({
-  getAmountInWords: vi.fn().mockReturnValue('One Hundred Only'),
-  drawPdfFooter: vi.fn(),
-  drawWatermark: vi.fn(),
-  PDF_TABLE_HEAD_STYLES: {},
-  PDF_TABLE_BODY_STYLES: {},
-  PDF_TABLE_ALTERNATE_ROW_STYLES: {},
-}));
+vi.mock('./pdfUtils', async () => {
+  const actual = await vi.importActual<typeof import('./pdfUtils')>('./pdfUtils');
+  return {
+    ...actual,
+    getAmountInWords: vi.fn().mockReturnValue('One Hundred Only'),
+    drawPdfFooter: vi.fn(),
+    drawWatermark: vi.fn(),
+  };
+});
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -190,5 +193,43 @@ describe('generalInvoicePdfService', () => {
     expect(
       doc.text.mock.calls.some((c: any[]) => String(c[0]) === 'USD 105.00')
     ).toBe(false);
+  });
+
+  it('moves totals/notes to a new page when the items table ends near the bottom (regression)', () => {
+    // Regression: sections drawn after the items table used to land at
+    // fixed Y coordinates past the bottom of the page, silently losing
+    // the Grand Total / notes on printed documents.
+    const pageHeight = 297;
+    const docInstance = {
+      setFontSize: vi.fn(),
+      setTextColor: vi.fn(),
+      text: vi.fn(),
+      setFont: vi.fn(),
+      splitTextToSize: vi.fn().mockReturnValue(['line1', 'line2']),
+      line: vi.fn(),
+      save: vi.fn(),
+      addPage: vi.fn(),
+      internal: { pageSize: { width: 210, height: pageHeight } },
+      lastAutoTable: { finalY: 285 }, // items table "ends" 12mm above the edge
+    };
+    (jsPDF as unknown as any).mockImplementationOnce(() => docInstance);
+
+    generateGeneralInvoicePDF(getBaseData());
+
+    // A page break must have been inserted for the totals block
+    expect(docInstance.addPage).toHaveBeenCalled();
+
+    // The Grand Total must still be rendered…
+    const textCalls = docInstance.text.mock.calls.map((c: any[]) => String(c[0]));
+    expect(textCalls).toContain('Grand Total:');
+
+    // …and NO text may be drawn below the printable area of an A4 page.
+    for (const call of docInstance.text.mock.calls) {
+      const y = call[2];
+      if (typeof y === 'number') {
+        expect(y).toBeLessThanOrEqual(pageHeight - 10);
+        expect(y).toBeGreaterThan(0);
+      }
+    }
   });
 });

@@ -54,6 +54,28 @@ const lastFile = (): SavedFile => {
 const pdfHeader = (bytes: Uint8Array) =>
   String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3], bytes[4]);
 
+/**
+ * Prove from the PRODUCED BYTES that no text was rendered below the page.
+ *
+ * jspdf v4 writes uncompressed content streams using "<x> <y> Td" text
+ * positioning, with the PDF origin at the BOTTOM-left of the page and
+ * coordinates in points (A4 height = 297mm = 841.89pt). Content drawn at
+ * jsPDF mm-coordinates past the page bottom therefore shows up here as a
+ * NEGATIVE Td Y — exactly the signature of the fixed-offset overflow bug
+ * this suite guards against.
+ */
+const assertNoTextBelowPageBottom = (file: SavedFile): void => {
+  const raw = Buffer.from(file.bytes).toString('latin1');
+  const ys: number[] = [];
+  const re = /-?\d+(?:\.\d+)?\s+(-?\d+(?:\.\d+)?)\s+Td/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(raw)) !== null) ys.push(parseFloat(m[1]));
+
+  expect(ys.length).toBeGreaterThan(0);
+  const below = ys.filter((y) => y < -0.5);
+  expect(below, `text drawn off-page at PDF Y=${below.slice(0, 5).join(', ')}`).toEqual([]);
+};
+
 describe('real PDF output (unmocked jsPDF)', () => {
   it('hotel LPO service emits a valid multi-section PDF and sanitizes unicode filenames', () => {
     const data = JSON.parse(JSON.stringify(INITIAL_LPO_DATA));
@@ -131,5 +153,57 @@ describe('real PDF output (unmocked jsPDF)', () => {
     expect(pdfHeader(file.bytes)).toBe('%PDF-');
     expect(file.bytes.length).toBeGreaterThan(2_000);
     expect(Buffer.from(file.bytes).toString('latin1')).toContain('/Type /Catalog');
+    assertNoTextBelowPageBottom(file);
+  });
+
+  it('general invoice keeps totals/notes on-page for a document that fills many pages (regression)', () => {
+    const data = JSON.parse(JSON.stringify(INITIAL_GENERAL_INVOICE));
+    data.companyName = 'Bulk Seller GmbH';
+    data.customer = { name: 'Bulk Buyer Ltd' };
+    data.invoiceNumber = 'INV-BULK-1';
+    data.items = Array.from({ length: 120 }, (_, i) => ({
+      id: `i${i}`,
+      description: `Consulting block ${i + 1}`,
+      quantity: 2,
+      unitPrice: 100,
+      taxRate: 7,
+      discount: 5,
+      total: 209,
+    }));
+    data.bankDetails = 'Testbank, IBAN DE00 0000 0000 0000 0000 00, SWIFT TESTTEST — '.repeat(4);
+    data.termsAndConditions = 'Payment within 14 days. Late payments incur interest. '.repeat(6);
+    data.notes = 'Delivered in partial shipments across the period. '.repeat(6);
+    data.showSignature = true;
+    data.signatureName = 'Signed Person';
+
+    expect(() => generateGeneralInvoicePDF(data)).not.toThrow();
+    const file = lastFile();
+    expect(file.pages).toBeGreaterThan(1);
+    // The old code drew the Grand Total / bank details at fixed offsets from
+    // the table end — off the page once the table filled it.
+    assertNoTextBelowPageBottom(file);
+  });
+
+  it('general LPO keeps summary and notes on-page for long item lists (regression)', () => {
+    const data = JSON.parse(JSON.stringify(INITIAL_GENERAL_LPO));
+    data.companyInfo!.name = 'Acme Corp';
+    data.supplierInfo!.name = 'Supplier';
+    data.items = Array.from({ length: 90 }, (_, i) => ({
+      id: `i${i}`,
+      description: `Bulk order line ${i + 1}`,
+      quantity: 1,
+      unit: 'pcs',
+      unitPrice: 10,
+      total: 10,
+    }));
+    data.notes = 'Ship in three partial deliveries. ';
+    data.termsAndConditions = 'Standard terms apply.';
+    data.includeSignature = true;
+    data.signatureName = 'Approver';
+
+    expect(() => generateGeneralLPOPDF(data)).not.toThrow();
+    const file = lastFile();
+    expect(file.pages).toBeGreaterThan(1);
+    assertNoTextBelowPageBottom(file);
   });
 });
